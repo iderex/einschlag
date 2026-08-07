@@ -98,9 +98,10 @@ assumed rather than measured, which `../survey/measurement-practice.md` shows is
 distinction the model depends on.
 
 The three-key value shape was taken over a compact string such as
-`"42.0 mm ± 0.5"` because a compact string needs its own grammar, its own parser
-and its own error messages, and the format was chosen partly to avoid exactly
-that. It is more verbose to write and the verbosity is what makes it checkable.
+`"42.0 mm +/- 0.5"` because a compact string needs its own grammar, its own
+parser and its own error messages, and the format was chosen partly to avoid
+exactly that. It is more verbose to write and the verbosity is what makes it
+checkable.
 
 The three uncertainty forms exist because the survey found three genuinely
 different epistemic states in practice and collapsing them loses the distinction
