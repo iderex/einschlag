@@ -26,11 +26,11 @@ output carries:
 
 ```
 $ cargo test 2>&1 | grep -c '^running '
-14
+15
 $ cargo test 2>&1 | grep -c '^running 0 tests'
 3
 $ cargo test 2>&1 | awk '/^test result:/ { n += $4 } END { print n }'
-56
+72
 ```
 
 Those three numbers move every time a test is added, so re-run the commands
