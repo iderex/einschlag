@@ -99,9 +99,13 @@ build script rather than from a crate, which `docs/BUILD.md` records and the pul
 request that landed #29 argues.
 
 `docs/decisions/0002-language-and-toolchain.md` names `rand`, `nalgebra`,
-`statrs` and `libm` as candidates and decides none of them. #77 took the last of
-those; the others are still undecided, and the issues that would take one are #37
-for sampling and #43 for the output artefact.
+`statrs` and `libm` as candidates and decides none of them. Two have been taken
+since. #77 took `libm`, in
+`docs/decisions/0013-platform-math-out-of-the-numeric-core.md`. #37 took `rand`
+and declined it, in `docs/decisions/0014-the-sampling-generator.md`: the draw
+sequence is arithmetic written in this repository, so nothing here supplies
+randomness and the count above is unmoved. `nalgebra` and `statrs` are still
+undecided, and #43 is the issue that would take one for the output artefact.
 
 ## What the check does not do
 

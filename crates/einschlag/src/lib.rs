@@ -10,6 +10,7 @@
 //! carried by milestones 4 and 5.
 
 pub mod math;
+pub mod sampling;
 pub mod vocabulary;
 
 /// The name the tool reports itself as.
