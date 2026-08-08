@@ -54,6 +54,7 @@ const SOURCES: &[&str] = &[
 /// being repeatable while every other rule in this file is obeyed: the generator
 /// is the project's, the reduction order is fixed, and the sequence still
 /// differs on every run.
+///
 /// `now` is deliberately absent, and its absence is the shape of the whole
 /// list. It is the method a clock is read through and it is also an ordinary
 /// English word: it appears in a message string in
@@ -133,10 +134,15 @@ fn assert_no_name(names: &[&str], what: &str) {
             // this module refuses is describing it, and a check that fires on
             // the description would stop the source explaining itself.
             let line = strip_line_comment(raw);
-            for token in line.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_')) {
-                if names.contains(&token.to_ascii_lowercase().as_str()) {
-                    offences.push(format!("{relative}:{}: {}", number + 1, raw.trim()));
-                }
+            // One offence per line rather than one per name. A single line can
+            // carry two of these, and reporting it twice reads as two places to
+            // repair. Watched happening: `SystemTime::UNIX_EPOCH` matched both
+            // entries of the seed list and printed itself twice.
+            if line
+                .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+                .any(|token| names.contains(&token.to_ascii_lowercase().as_str()))
+            {
+                offences.push(format!("{relative}:{}: {}", number + 1, raw.trim()));
             }
         }
     }
