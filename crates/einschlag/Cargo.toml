@@ -6,3 +6,8 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+# The exact version rather than a range, because Cargo.lock is untracked until
+# #26 and a fresh clone would otherwise resolve whatever is newest. A different
+# release of this crate may return a different last place, which is the thing
+# docs/decisions/0013-platform-math-out-of-the-numeric-core.md pins.
+libm = "=0.2.16"
