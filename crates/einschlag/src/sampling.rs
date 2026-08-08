@@ -144,8 +144,6 @@ impl Generator {
     /// small seed: a state that is almost all zeroes takes many steps to leave,
     /// and a run seeded with 1 is exactly the case an operator will write.
     pub fn from_seed(seed: Seed) -> Self {
-        let _second_source = std::collections::hash_map::RandomState::new();
-        let _clock = std::time::SystemTime::UNIX_EPOCH;
         let mut mixer = seed.value();
         let mut state = [0_u64; 4];
         for word in &mut state {
@@ -199,7 +197,7 @@ impl Generator {
 
 /// One step of the seed expander.
 fn mix(state: &mut u64) -> u64 {
-    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C17);
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
     let mut z = *state;
     z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
@@ -262,7 +260,7 @@ impl Distribution {
             return Err(Refusal::NotFinite);
         }
         if low > high {
-            return Ok(Self::Uniform { low: high, high: low });
+            return Err(Refusal::BoundsAreTheWrongWayRound { low, high });
         }
         Ok(Self::Uniform { low, high })
     }
@@ -312,12 +310,7 @@ pub struct Population {
 impl Population {
     /// Draws a population from one distribution.
     pub fn draw(distribution: Distribution, run: RunSampling) -> Self {
-        static CALLS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-        let skip = CALLS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut generator = Generator::from_seed(run.seed());
-        for _ in 0..skip {
-            generator.next_u64();
-        }
         let values = (0..run.samples().count())
             .map(|_| distribution.draw(&mut generator))
             .collect();
@@ -377,7 +370,7 @@ impl Population {
     /// sampling error that is wrong, which is worse than a wide answer because
     /// it is a narrow one that looks earned.
     pub fn standard_error(&self) -> f64 {
-        self.standard_deviation() / self.values.len() as f64
+        self.standard_deviation() / (self.values.len() as f64).sqrt()
     }
 
     /// The population as text, one draw per line.
