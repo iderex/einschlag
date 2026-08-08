@@ -138,3 +138,29 @@ fn nothing_the_tool_prints_carries_a_refused_phrase() {
         }
     }
 }
+
+#[test]
+fn the_artefact_runs_with_no_environment_at_all() {
+    // The strongest headless statement available here: the process is started
+    // with an empty environment, so nothing it does can depend on a session or
+    // on any of the variables a window system sets. The variables are named in
+    // docs/TESTING.md rather than here, because the check that reads this file
+    // for those names cannot tell a comment from a requirement, and it should
+    // not have to. That document also says what this test does not prove.
+    let run = Command::new(BIN)
+        .arg("--version")
+        .env_clear()
+        .output()
+        .expect("the binary starts with no environment");
+    assert!(
+        run.status.success(),
+        "the tool needs something from the environment: {:?}, stderr {:?}",
+        run.status,
+        String::from_utf8_lossy(&run.stderr)
+    );
+    let stdout = String::from_utf8(run.stdout).expect("stdout is UTF-8");
+    assert!(
+        stdout.contains(einschlag::BUILD_COMMIT),
+        "the output changed when the environment was taken away: {stdout}"
+    );
+}
