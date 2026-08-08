@@ -7,6 +7,10 @@
 use einschlag::TOOL_NAME;
 
 fn main() {
+    if std::env::args().skip(1).any(|arg| arg == "--version") {
+        print!("{}", einschlag::version_line());
+        return;
+    }
     print!("{}", usage());
 }
 
@@ -20,13 +24,14 @@ fn usage() -> String {
         "{TOOL_NAME}: shooting-scene reconstruction that states what it cannot exclude.
 
 usage:
-  {TOOL_NAME}
+  {TOOL_NAME} --version    print the version and the commit this was built from
+  {TOOL_NAME}              print this text
 
-No subcommand is implemented yet. This build is the scaffold: it exists so that
-the build, the test harness and the release route can be checked before there is
-anything to compute. Running it with arguments prints this same text and exits
-zero, because no argument grammar has been decided; issue #29 lands the first
-one, with the version and the commit it was built from.
+No subcommand that computes anything is implemented yet. This build is the
+scaffold: it exists so that the build, the test harness and the release route
+can be checked before there is anything to compute. Any other argument prints
+this same text and exits zero, because no argument grammar has been decided
+beyond --version.
 
 docs/BUILD.md says how this was built. docs/decisions/ says what it will do and
 why, and is readable without the source.
@@ -49,8 +54,12 @@ mod tests {
             "the usage text does not name the tool: {text}"
         );
         assert!(
-            text.contains("No subcommand is implemented yet"),
-            "the usage text no longer says the tool does nothing yet: {text}"
+            text.contains("No subcommand that computes anything is implemented yet"),
+            "the usage text no longer says the tool computes nothing yet: {text}"
+        );
+        assert!(
+            text.contains("--version"),
+            "the usage text does not mention the one option that exists: {text}"
         );
     }
 }
