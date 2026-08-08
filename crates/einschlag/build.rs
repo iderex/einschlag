@@ -38,10 +38,52 @@ fn main() {
 
     println!("cargo::rustc-env=EINSCHLAG_BUILD_COMMIT={commit}");
     println!("cargo::rustc-env=EINSCHLAG_BUILD_TREE_STATE={tree_state}");
+    println!("cargo::rustc-env=EINSCHLAG_BUILD_RUSTC_VERSION={}", compiler_version());
 
     for path in rerun_triggers(root.as_deref()) {
         println!("cargo::rerun-if-changed={}", path.display());
     }
+}
+
+/// The version of the compiler Cargo is actually using for this build.
+///
+/// Cargo names it in `RUSTC`, so this is the compiler that will build the crate
+/// rather than whatever `rustc` a shell would find. That distinction is the
+/// whole point: a build reaching Cargo with a toolchain override, or without
+/// rustup in front of it, uses a compiler `rust-toolchain.toml` never chose, and
+/// nothing else in the tree would notice.
+fn compiler_version() -> String {
+    let Some(rustc) = std::env::var_os("RUSTC") else {
+        return UNKNOWN.to_owned();
+    };
+    let Ok(out) = Command::new(rustc).arg("--version").output() else {
+        return UNKNOWN.to_owned();
+    };
+    if !out.status.success() {
+        return UNKNOWN.to_owned();
+    }
+    let Ok(text) = String::from_utf8(out.stdout) else {
+        return UNKNOWN.to_owned();
+    };
+    // "rustc 1.2.3 (0000000 1970-01-01)" -> "1.2.3". The example carries no
+    // real version on purpose; the pinned one lives in rust-toolchain.toml and
+    // nowhere else that configures a build.
+    text.split_whitespace()
+        .nth(1)
+        .filter(|version| is_release_version(version))
+        .unwrap_or(UNKNOWN)
+        .to_owned()
+}
+
+/// Three dot-separated numbers and nothing else. A nightly or beta compiler
+/// reports something this refuses, which is correct: this project pins a
+/// release and a build made with anything else has not honoured the pin.
+fn is_release_version(candidate: &str) -> bool {
+    let parts: Vec<&str> = candidate.split('.').collect();
+    parts.len() == 3
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
 }
 
 /// The top of the working tree, or `None` when this is not a repository.

@@ -46,14 +46,40 @@ Cargo and the standard library. The components a formatter and a linter need are
 added by the issue that lands them, which is #22, rather than being installed
 here for a build that does not use them.
 
-**A build that reaches `cargo` without rustup in front of it is not covered by
-this pin.** A distribution-packaged toolchain, a vendored build or an image that
-installed Cargo directly will use whatever compiler it has, and this tree carries
-nothing that refuses it. The manifest states no minimum version, and the reason
-is that #21's Done-when requires the version in exactly one tracked file while
-Cargo has no way to read a manifest key from another file. Issue #81 holds the
-mechanism. Until it lands, an older compiler on that route fails inside the
-source rather than with a message naming a version.
+**A build that reaches `cargo` without rustup in front of it is not stopped by
+this pin, and it is refused by a test.** A distribution-packaged toolchain, a
+vendored build, an image that installed Cargo directly, or `cargo +1.96.0` typed
+by hand will all use a compiler this file never chose. The manifest states no
+minimum version, because #21 requires the version in exactly one tracked file and
+Cargo cannot read a manifest key from another file. So the disagreement is
+refused rather than prevented: `crates/einschlag/build.rs` records the compiler
+Cargo actually used and `crates/einschlag/tests/toolchain_pin.rs` fails when it
+differs from the channel above.
+
+```
+$ cargo +1.96.0 test -p einschlag --test toolchain_pin
+test the_compiler_that_built_this_is_the_one_the_pin_names ... FAILED
+
+thread 'the_compiler_that_built_this_is_the_one_the_pin_names' panicked at crates\einschlag\tests\toolchain_pin.rs:31:5:
+assertion `left == right` failed: this build used rustc 1.96.0 and rust-toolchain.toml pins 1.97.0.
+```
+
+**What that does not do is stop the build.** It compiles, and the test says so
+afterwards. A build made with `--release` and never tested still ships. The
+mechanism `docs/decisions/0002-language-and-toolchain.md` asked for, a compiler
+error naming the version, would have needed a second literal in the manifest, and
+that is the trade #81 recorded and this took.
+
+**The version is in one file that configures a build, and in two documents that
+quote it.** `crates/einschlag/tests/toolchain_pin.rs` refuses a second
+configuration point: another manifest, a source file or a workflow setting the
+version fails. It does not refuse a document. This page and
+`docs/decisions/0002-language-and-toolchain.md` both write the number out, each
+inside a command transcript that shows where it came from, and a record is never
+edited in place so the second one cannot be repaired even if it should be. #21's
+body claimed the number appeared in exactly one tracked file, on a search that
+excluded `docs/`; that claim held only under that exclusion and this paragraph is
+the correction.
 
 ## What a clean clone needs
 
