@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/einschlag", "crates/einschlag-cli"]
+
+# Shared by both members so neither can drift from the other. There is no
+# `rust-version` key here on purpose; the reason is in docs/BUILD.md and in
+# issue #81.
+#
+# There is no `license` key either. This repository has no LICENSE file, the
+# licence is an open maintainer decision on issue #1, and a manifest naming a
+# licence the tree does not carry would be an assertion nobody made.
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+publish = false

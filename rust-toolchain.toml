@@ -1,0 +1,14 @@
+# The one tracked file that carries the toolchain version.
+#
+# A clone that has rustup installed picks this compiler up without anybody being
+# told to, which is the failure a documented minimum version does not prevent.
+# Nothing else in the tree restates the number: docs/BUILD.md points here and
+# gives the command that prints it.
+#
+# The channel is an exact version rather than "stable". "stable" moves under the
+# same source, and docs/decisions/0009-determinism.md promises that the same
+# input, the same seed and the same build produce byte-identical output.
+
+[toolchain]
+channel = "1.97.0"
+profile = "minimal"
