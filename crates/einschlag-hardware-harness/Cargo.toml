@@ -1,0 +1,18 @@
+[package]
+name = "einschlag-hardware-harness"
+description = "Runs that need equipment, kept out of the default test suite"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+# There is no [[test]] target here and there is not meant to be one. A run in
+# this crate is a binary under src/bin, so `cargo test` compiles it and the test
+# runner has nothing it could start. The unit tests in src/lib.rs refuse a test
+# target being added, and docs/TESTING.md says what that guard covers.
+
+[dependencies]
+# Real rather than decorative. The harness records figures about the core's
+# subject, so a change to the core that breaks this crate stops the default
+# suite compiling, which is the half of issue #53 that asks for a run nobody
+# executes to still be checked for validity.
+einschlag = { path = "../einschlag" }

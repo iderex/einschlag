@@ -39,6 +39,11 @@ const ALLOWED: &[(&str, &str)] = &[
     ("einschlag", "this workspace's own core"),
     ("einschlag-cli", "this workspace's own front end"),
     (
+        "einschlag-hardware-harness",
+        "this workspace's own runs that need equipment, kept out of the default \
+         test suite by issue #53. It depends on the core and on nothing else",
+    ),
+    (
         "libm",
         "the pinned transcendental implementation the numeric core calls, \
          argued in docs/decisions/0013-platform-math-out-of-the-numeric-core.md. \
