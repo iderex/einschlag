@@ -9,6 +9,8 @@
 //! The core is empty today. What fills it is decided in `docs/decisions/` and
 //! carried by milestones 4 and 5.
 
+pub mod vocabulary;
+
 /// The name the tool reports itself as.
 ///
 /// It lives here rather than in the front end so that a second front end, or a
