@@ -227,6 +227,9 @@ impl Refusal {
 /// One text field, trimmed, refused where it is empty or would break the record.
 fn field(name: &'static str, value: &str) -> Result<String, Refusal> {
     let value = value.trim();
+    if value.is_empty() {
+        return Err(Refusal::FieldIsEmpty(name));
+    }
     if value.contains(FIELD_SEPARATOR) || value.contains('\n') || value.contains('\r') {
         return Err(Refusal::FieldSplitsTheRecord(name));
     }
