@@ -94,6 +94,13 @@ mod tests {
     fn the_version_line_is_not_empty_and_carries_the_commit() {
         let line = version_line();
         assert!(!line.trim().is_empty(), "the version line is empty");
+        // Checked before the `contains` below, which an empty commit would
+        // satisfy vacuously. Watched happening: with the field dropped, this
+        // test passed and only the object-name test went red.
+        assert!(
+            !BUILD_COMMIT.is_empty(),
+            "the commit field is empty, so the check below would pass on nothing"
+        );
         assert!(
             line.contains(VERSION),
             "the version line does not carry the version: {line:?}"
