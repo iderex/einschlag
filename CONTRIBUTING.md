@@ -89,6 +89,15 @@ Commits are signed off. Use `git commit -s`, or add the trailer by hand; it has 
 match the commit author exactly, because that is what the gate compares. A
 retroactive fix on an existing branch is `git rebase --signoff <base>`.
 
+What the trailer asserts is the Developer Certificate of Origin 1.1, and the text
+is `DCO` at the root of this repository. Adding the trailer is a statement that
+you wrote the contribution or have the right to submit it, and that you
+understand the contribution and the record of it are public and kept
+indefinitely. Read the file rather than this paragraph; this paragraph is a
+summary and the file is the text. Whether contributions from outside are wanted
+at all is a separate question and is not answered by the presence of a sign-off
+mechanism, which the last section of this document says at more length.
+
 Commit messages state what changed and what failure it prevents. Where a
 correction is being made, they say what was wrong and how it was found. One topic
 per commit and per pull request: a commit carrying two unrelated changes has a
