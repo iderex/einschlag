@@ -38,7 +38,55 @@ terms conflict with whatever is chosen there is a problem discovered late.
 
 ## The direct dependencies
 
-There are none.
+There is one.
+
+### libm
+
+**What it is used for.** Every transcendental function the numeric core
+evaluates: the arcsine the ellipse relation is built on, the trigonometry that
+turns a direction into a scene frame, and the exponentials and logarithms the
+uncertainty model needs.
+`docs/decisions/0013-platform-math-out-of-the-numeric-core.md` argues the choice
+and `crates/einschlag/src/math.rs` is the one place it is called from.
+
+**What doing without it would cost.** The alternative in reach is the standard
+library, whose documentation attaches an "Unspecified precision" note to those
+same functions, permitting the result to vary by platform, by compiler release,
+and from one invocation to the next inside a single execution. The last of those
+is inside the promise `docs/decisions/0009-determinism.md` makes rather than
+inside its stated bound. The other alternative is writing the functions here,
+which is a numerical-methods project this repository would then own and test
+forever.
+
+**Its licence.** MIT, read from the resolved package rather than from a
+README:
+
+```
+$ cargo metadata --format-version 1 | python -c "import json,sys; d=json.load(sys.stdin); print([(p['name'], p['version'], p['license'], p['repository']) for p in d['packages'] if p['name']=='libm'])"
+[('libm', '0.2.16', 'MIT', 'https://github.com/rust-lang/compiler-builtins')]
+```
+
+MIT code may be combined into a work distributed under AGPL-3.0, which is what
+entry 1 of #1 decided and what `LICENSE` now carries. The obligation it brings is
+that the notice and the permission text travel with any distribution, which is a
+thing a release has to carry rather than a thing this file settles.
+
+**The version requirement is exact.** `= 0.2.16` rather than a range, because
+`Cargo.lock` is untracked until #26 and a fresh clone would otherwise resolve
+whatever is newest. A later release of this crate may return a different value in
+the last place, which is the whole thing the record pins. Once the lock is
+tracked, the exact requirement can be relaxed to a range and the lock can hold
+the version instead.
+
+**What it brings with it.** Nothing. It is the only package in the graph besides
+this workspace's own two. The absolute path the first line printed is shortened
+here to the part that is the same in every clone:
+
+```
+$ cargo tree -p einschlag --charset ascii
+einschlag v0.0.0 (crates\einschlag)
+`-- libm v0.2.16
+```
 
 The workspace has two crates and `einschlag-cli` depends on `einschlag` by path.
 That is one part of this project depending on another part of it, not code
@@ -46,14 +94,14 @@ somebody else wrote, and the check does not count it. A path dependency pointing
 outside the workspace would be counted, because that is somebody else's code
 arriving by a different route.
 
-Nothing else is used. The provenance the tool reports comes from `git` invoked as
-a subprocess in a build script rather than from a crate, which
-`docs/BUILD.md` records and the pull request that landed #29 argues.
+The provenance the tool reports comes from `git` invoked as a subprocess in a
+build script rather than from a crate, which `docs/BUILD.md` records and the pull
+request that landed #29 argues.
 
-This section is expected to stop being empty. `docs/decisions/0002-language-and-toolchain.md`
-names `rand`, `nalgebra`, `statrs` and `libm` as candidates and decides none of
-them, and the issues that would take one are #37 for sampling, #77 for the
-platform mathematics and #43 for the output artefact.
+`docs/decisions/0002-language-and-toolchain.md` names `rand`, `nalgebra`,
+`statrs` and `libm` as candidates and decides none of them. #77 took the last of
+those; the others are still undecided, and the issues that would take one are #37
+for sampling and #43 for the output artefact.
 
 ## What the check does not do
 

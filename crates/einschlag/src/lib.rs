@@ -9,6 +9,7 @@
 //! The core is empty today. What fills it is decided in `docs/decisions/` and
 //! carried by milestones 4 and 5.
 
+pub mod math;
 pub mod vocabulary;
 
 /// The name the tool reports itself as.
