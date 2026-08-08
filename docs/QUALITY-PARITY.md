@@ -175,6 +175,163 @@ audience that may be working on a machine that will be searched.
 compared on every run, so that a change altering the numbers fails rather than
 quietly updating what the documentation claims.
 
+## Supply chain hygiene, read rather than displayed
+
+Five guards run here. A score that nobody has read is a badge, so this section is
+the triage: what the supply chain score reports, check by check, and for each one
+either that it is satisfied or that it is accepted with the reason and the date.
+
+### The score, with the command and the date
+
+The scoring job publishes to the OpenSSF API, so the number a reader would find
+is the number quoted here, at the commit it was computed on rather than at a
+working tree.
+
+```
+$ curl -s "https://api.securityscorecards.dev/projects/github.com/iderex/einschlag" | python -c "
+import json,sys
+d=json.load(sys.stdin)
+print('%s  %s  aggregate %s' % (d['date'], d['repo']['commit'], d['score']))
+for c in sorted(d['checks'], key=lambda c: c['name']):
+    print('%-24s %3s  %s' % (c['name'], c['score'], c['reason']))
+"
+2026-08-08T19:44:36Z  e38fc4294a0b60eb4d4700ad994c6f7f8cd47b74  aggregate 5.6
+Binary-Artifacts          10  no binaries found in the repo
+Branch-Protection          3  branch protection is not maximal on development and all release branches
+CI-Tests                  10  13 out of 13 merged PRs checked by a CI test -- score normalized to 10
+CII-Best-Practices         0  no effort to earn an OpenSSF best practices badge detected
+Code-Review                0  Found 0/13 approved changesets -- score normalized to 0
+Contributors               0  project has 0 contributing companies or organizations -- score normalized to 0
+Dangerous-Workflow        10  no dangerous workflow patterns detected
+Dependency-Update-Tool     0  no update tool detected
+Fuzzing                    0  project is not fuzzed
+License                   10  license file detected
+Maintained                 0  project was created within the last 90 days. Please review its contents carefully
+Packaging                 -1  packaging workflow not detected
+Pinned-Dependencies       10  all dependencies are pinned
+SAST                      10  SAST tool is run on all commits
+Security-Policy            4  security policy file detected
+Signed-Releases           -1  no releases found
+Token-Permissions         10  GitHub workflow tokens follow principle of least privilege
+Vulnerabilities           10  0 existing vulnerabilities detected
+```
+
+A score of `-1` is the tool saying the check did not apply here, which is a third
+state and not a zero. The rows below keep it as one.
+
+The aggregate is the tool's own weighting of those eighteen numbers and it is not
+this project's measure of anything. It is quoted because a reader will find it,
+and the rows are what the reading is actually about.
+
+### Every check it reports, satisfied or accepted
+
+| Check | Score | Satisfied, or accepted with the reason |
+| --- | --- | --- |
+| `Binary-Artifacts` | 10 | Satisfied. Nothing executable is tracked. |
+| `Branch-Protection` | 3 | Accepted, 2026-08-08. The three warnings about approvers, stale review dismissal, codeowners and last-push approval all describe a second person, and this repository has one committer; a required approver it cannot supply would stop every merge. The fourth warning, no status checks, is the real gap and it is not accepted here: it is entry 3 of #1, a maintainer decision and a repository setting, and this document says elsewhere that a red build merges today. |
+| `CI-Tests` | 10 | Satisfied by the guards that already run, and it should be read narrowly: the check counts merged pull requests that had some check attached, not pull requests whose checks were required to be green. |
+| `CII-Best-Practices` | 0 | Accepted, 2026-08-08. Earning that badge is a self-assessment questionnaire about a project's practices, answered by the maintainer. It is not refused, it is unstarted, and nothing in this repository changes by scoring it. |
+| `Code-Review` | 0 | Accepted, 2026-08-08. It counts approved changesets, and an approval needs a second account. `CONTRIBUTING.md` requires that a pull-request body carry its evidence for exactly this reason, and where a change has had no second reader its body says so. That is weaker than an approval and it is what is available. |
+| `Contributors` | 0 | Accepted, 2026-08-08. It counts contributing companies or organisations across the last commits. One person wrote this repository. The number is a fact about the project's size and there is no action behind it. |
+| `Dangerous-Workflow` | 10 | Satisfied. |
+| `Dependency-Update-Tool` | 0 | Accepted, 2026-08-08, and the least comfortable row here. An automated update tool is not configured. The direct dependency this project has is pinned to an exact version on purpose, argued in `decisions/0013-platform-math-out-of-the-numeric-core.md`, so an automatic bump would be a change to a determinism decision rather than routine hygiene. What is not accepted is going without any route by which a vulnerable dependency becomes visible: `dependency-review.yml` refuses a newly introduced or upgraded dependency with a known vulnerability at any severity, and it only sees a change somebody makes. A vulnerability disclosed against a version already in the tree is caught by neither, and nothing here closes that. |
+| `Fuzzing` | 0 | Accepted, 2026-08-08, as a thing owed rather than declined. The surface worth fuzzing is the input parser, which does not exist; #58 carries it and #33 carries the parser. |
+| `License` | 10 | Satisfied since entry 1 of #1 was answered and #92 landed the file. |
+| `Maintained` | 0 | Accepted, 2026-08-08. The check reports that the repository is less than ninety days old. Nothing can be done about that except waiting, and the warning is correct to make a reader look. |
+| `Packaging` | -1 | Not applicable today. It looks for a publishing workflow, and this project publishes nothing until milestone 10 and entry 5 of #1. |
+| `Pinned-Dependencies` | 10 | Satisfied, and checked here by its own command rather than by trusting the score. See below. |
+| `SAST` | 10 | Satisfied by the workflow audit running on every commit. Read narrowly: what runs today analyses the workflow files, and static analysis over this project's own source is #56 and does not exist. The check scoring 10 says a tool runs, not that this project's code is analysed. |
+| `Security-Policy` | 4 | Accepted, 2026-08-08. `SECURITY.md` exists and the tool found the disclosure text in it. The four points it withheld are for "no linked content found", which wants a hyperlink or an address in the file. The reporting route here is GitHub's private vulnerability reporting rather than an address, and inventing a mailto to score points would put a contact in the tree that nobody reads. The points are declined and the reason is this sentence. |
+| `Signed-Releases` | -1 | Not applicable today. There are no releases. Whether artefacts are signed and by whom is entry 5 of #1. |
+| `Token-Permissions` | 10 | Satisfied, and checked here by its own command rather than by trusting the score. See below. |
+| `Vulnerabilities` | 10 | Satisfied at the commit above. It is a statement about a moment, not a property, and it is the row most likely to have changed by the time somebody reads this. |
+
+Six rows are accepted rather than satisfied and two are not applicable. None of
+them is closed by this document, and three of them, `Branch-Protection`,
+`Fuzzing` and `SAST`, name the issue or the decision that would move them.
+
+### Every action pinned, checked by a command
+
+Every action reference in every workflow file, so the set is visible rather than
+described:
+
+```
+$ grep -rhoE 'uses: [^[:space:]]+' .github/workflows/ | sort | uniq -c
+      5 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      1 uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+      1 uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      1 uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      2 uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
+      1 uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc
+```
+
+And the check itself, which prints any reference that is not a forty-character
+commit digest carrying the version in a trailing comment:
+
+```
+$ grep -rn 'uses:' .github/workflows/ | grep -vE '@[0-9a-f]{40} # v[0-9]'; echo "exit=$?"
+exit=1
+```
+
+No output and an exit status of 1 from the second `grep` is the whole result:
+nothing failed the pattern. A tag or a branch in place of a digest is a
+dependency that changes under the same name, and the trailing comment is what
+makes the digest readable to a person, so the pattern requires both.
+
+**This command is not enforcement.** Nothing runs it. It is written here so that
+it can be run rather than described, and the check the workflow audit does make
+is the one below.
+
+### Permissions declared narrowly, per file and per job
+
+Every workflow file declares its permissions at the top, and every one of those
+declarations is read-only or empty:
+
+```
+$ for f in .github/workflows/*.yml; do printf '%-40s ' "$f"; awk '/^permissions:/{f=1; print; next} f&&/^[[:space:]]+/{print "  " $0; next} f{exit}' "$f" | tr '\n' ' '; echo; done
+.github/workflows/dco.yml                permissions:     contents: read
+.github/workflows/dependency-review.yml  permissions:     contents: read
+.github/workflows/scorecard.yml          permissions:     contents: read
+.github/workflows/unicode-guard.yml      permissions:     contents: read
+.github/workflows/zizmor.yml             permissions: {}
+```
+
+The two files that need a write scope grant it on the job rather than on the
+file: `scorecard.yml` takes `security-events: write` and `id-token: write` in its
+job, and `zizmor.yml` takes `security-events: write` in its job, each with the
+reason written beside it.
+
+The workflow security audit runs over the repository rather than over a named
+file, at low severity and above, and it fails closed if any workflow fails to
+parse. It passed on the commit the score above was computed at:
+
+```
+$ gh run list --repo iderex/einschlag --workflow zizmor.yml --branch main --limit 1 --json databaseId,conclusion,headSha --jq '.[] | "\(.databaseId) \(.conclusion) \(.headSha)"'
+31275172113 success e38fc4294a0b60eb4d4700ad994c6f7f8cd47b74
+```
+
+### The dependency licences against the licence this project took
+
+Entry 1 of #1 was answered on 2026-08-08 and `LICENSE` carries AGPL-3.0, so the
+check that was waiting on it can be made. The direct dependencies and their
+licences, read from the resolved packages rather than from a README:
+
+```
+$ cargo metadata --format-version 1 | python -c "import json,sys; d=json.load(sys.stdin); print(sorted((p['name'], p['version'], p['license']) for p in d['packages'] if p['name'] not in ('einschlag', 'einschlag-cli')))"
+[('libm', '0.2.16', 'MIT')]
+```
+
+One dependency, MIT. MIT code may be combined into a work distributed under
+AGPL-3.0; the obligation it carries is that its notice and permission text travel
+with any distribution, which is a thing a release has to do rather than a thing
+this check settles. `DEPENDENCIES.md` holds the entry.
+
+**Read narrowly.** The licence string is what the package's own manifest declares.
+Nothing verifies that the declaration matches the files in the package, and a
+crate that changes its licence between releases would leave this reading stale.
+The exact version requirement is what bounds that here: the version cannot move
+without somebody editing the manifest.
+
 ## What this document does not decide
 
 Which of the resulting checks become required before a merge. The two rulesets
