@@ -34,6 +34,13 @@ pub const BUILD_COMMIT: &str = env!("EINSCHLAG_BUILD_COMMIT");
 /// though the source matched it.
 pub const BUILD_TREE_STATE: &str = env!("EINSCHLAG_BUILD_TREE_STATE");
 
+/// The release version of the compiler Cargo used for this build, or `unknown`.
+///
+/// It is the compiler Cargo named rather than whatever a shell would find, and
+/// `crates/einschlag/tests/toolchain_pin.rs` refuses a build where it disagrees
+/// with the version pinned in `rust-toolchain.toml`.
+pub const BUILD_RUSTC_VERSION: &str = env!("EINSCHLAG_BUILD_RUSTC_VERSION");
+
 /// What the tool says about its own provenance, on one line per fact.
 ///
 /// An output artefact may be read years later, next to a report, by somebody
