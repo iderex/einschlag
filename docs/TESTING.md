@@ -75,6 +75,57 @@ Material goes there rather than beside the code so that the same file can be rea
 by a unit test, by an end-to-end run and by a person checking the tool by hand.
 It holds nothing yet; the first inputs arrive with the parser in #33.
 
+## Headless and unprivileged
+
+**Every test in the default suite runs with no display available and with no
+elevated rights. Anything that cannot is not in the default suite.**
+
+Two of this project's stated users work on borrowed or restricted machines, which
+`survey/field-practice.md` records. A test that opens a window or asks for
+administrator rights excludes them, and it excludes an unattended runner too,
+which means the suite reported green is not the suite that ran. It is cheap to
+hold now and expensive after the first test that needs a window.
+
+A test that genuinely needs hardware, a display or a privilege is not deleted. It
+goes outside the default suite, is named for what it is, and is disclosed
+wherever its absence matters. Issue #53 is the first of those, for the hardware
+harness.
+
+### What refuses a violation, and what does not
+
+`crates/einschlag/tests/headless_and_unprivileged.rs` reads every Rust source
+file and every manifest in the workspace and refuses two lists of names: the ones
+a display or window system is reached through, and the ones an elevation request
+is made through. It skips documentation, because a document naming a display
+variable is describing it rather than requiring it, and refusing that would stop
+this page stating its own rule.
+
+`crates/einschlag-cli/tests/cli.rs` starts the built artefact with an empty
+environment and requires it to produce the same output. Nothing it does can
+depend on a session, a display variable or anything else a restricted machine
+might not provide.
+
+**Neither of those asserts that the run was unprivileged or that no display was
+available, and no test here does.** Rust has no declaration of what a test
+requires, so there is nothing for a check to read. Reading the running process's
+privilege level needs a foreign function call into the platform, and the
+alternatives are probes with side effects, such as opening a file only an
+administrator can write. Neither belongs in a check that runs on every developer
+machine, and #88 holds the mechanism if one is wanted.
+
+So what stands here is a floor. The marker lists hold what somebody would
+actually write, and they will not catch a route nobody has written yet. The
+dependency budget in `DEPENDENCIES.md` is the other half: a windowing crate
+cannot arrive without an entry saying what it is for, which is the point at which
+a person sees it.
+
+**Nothing outside a developer's machine runs this suite at all**, so the claim
+that it is headless has not been tested by running it somewhere headless. Issue
+#24 creates the job, and #25 asks that the job be configured to run the tests as
+an unprivileged user with no display server, visible in the configuration rather
+than inherited from whatever the runner image happens to be. Until that lands,
+the rule above is held by the two checks and by whoever reads a change.
+
 ## What a test is for
 
 A test that could not have failed proves nothing. Where a test is written to
@@ -86,12 +137,6 @@ That is not a convention this repository can enforce. Nothing reads a pull reque
 body here, which `CONTRIBUTING.md` states with the command that produced it.
 
 ## What this document does not yet say
-
-**Whether the suite needs a display or elevated rights is not stated here, and no
-test asserts it.** Two of this project's stated users work on borrowed or
-restricted machines, and a suite that quietly grows a test needing either one
-excludes them and excludes the continuous integration runner too. Issue #25 adds
-the rule and the assertion to this document.
 
 **Nothing outside a developer's machine runs this suite.** The workflows in
 `.github/workflows/` check sign-off, dependencies, Unicode and the workflow files;
