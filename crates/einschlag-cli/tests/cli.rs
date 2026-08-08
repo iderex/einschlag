@@ -53,10 +53,11 @@ fn no_arguments_prints_usage_and_exits_zero() {
 
 #[test]
 fn an_unknown_argument_is_accepted_today_and_this_test_records_that() {
-    // Not an endorsement. `docs/BUILD.md` and the usage text both say that
-    // arguments are read and ignored because no argument grammar has been
-    // decided. This test exists so that the day #29 lands one, it fails and
-    // has to be rewritten rather than the change going in unnoticed.
+    // Not an endorsement. The usage text says that any argument other than
+    // --version prints usage and exits zero, because no argument grammar has
+    // been decided beyond that one. This test exists so that the day a grammar
+    // lands, it fails and has to be rewritten rather than the change going in
+    // unnoticed.
     let run = Command::new(BIN)
         .arg("--no-such-option")
         .output()
@@ -65,5 +66,52 @@ fn an_unknown_argument_is_accepted_today_and_this_test_records_that() {
         run.status.success(),
         "an unknown argument now fails, which is a change of contract: {:?}",
         run.status
+    );
+}
+
+#[test]
+fn version_reports_the_commit_the_artefact_was_built_from() {
+    let run = Command::new(BIN)
+        .arg("--version")
+        .output()
+        .expect("the binary starts");
+    assert!(
+        run.status.success(),
+        "--version failed: {:?}",
+        run.status
+    );
+    let stdout = String::from_utf8(run.stdout).expect("stdout is UTF-8");
+    assert!(
+        stdout.contains(einschlag::VERSION),
+        "--version does not print the version: {stdout}"
+    );
+    assert!(
+        stdout.contains(einschlag::BUILD_COMMIT),
+        "--version does not print the commit: {stdout}"
+    );
+    assert!(
+        stdout.contains("commit "),
+        "the commit is not labelled in the output: {stdout}"
+    );
+    assert!(
+        run.stderr.is_empty(),
+        "--version wrote to stderr: {:?}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+}
+
+#[test]
+fn version_says_whether_the_tree_it_was_built_from_was_modified() {
+    let run = Command::new(BIN)
+        .arg("--version")
+        .output()
+        .expect("the binary starts");
+    let stdout = String::from_utf8(run.stdout).expect("stdout is UTF-8");
+    let says_something_about_the_tree = stdout.contains("working tree matched this commit")
+        || stdout.contains("working tree had uncommitted changes at build time")
+        || stdout.contains("working tree state unknown");
+    assert!(
+        says_something_about_the_tree,
+        "--version reports a commit without saying whether the source matched it: {stdout}"
     );
 }

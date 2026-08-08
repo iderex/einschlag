@@ -9,9 +9,15 @@ cargo build --release
 Run it from the root of a clone. It builds both crates and leaves a binary at
 `target/release/einschlag` (`target\release\einschlag.exe` on Windows).
 
-There is no configure step, no code generation, no build script and no network
-access beyond what Cargo needs for dependencies, of which there are none outside
-this workspace today.
+There is no configure step, no code generation and no network access beyond what
+Cargo needs for dependencies, of which there are none outside this workspace
+today.
+
+There is one build script, `crates/einschlag/build.rs`. It runs `git` twice to
+derive the commit the build was made from, writes two environment values for the
+compiler, and does nothing else. A build where `git` is missing still succeeds
+and reports the commit as `unknown`. What that field means and where it is weak
+is under "Which code produced an artefact" below.
 
 ## The pinned toolchain
 
@@ -71,19 +77,57 @@ $ ./target/release/einschlag
 einschlag: shooting-scene reconstruction that states what it cannot exclude.
 
 usage:
-  einschlag
+  einschlag --version    print the version and the commit this was built from
+  einschlag              print this text
 
-No subcommand is implemented yet. This build is the scaffold: it exists so that
-the build, the test harness and the release route can be checked before there is
-anything to compute. Running it with arguments prints this same text and exits
-zero, because no argument grammar has been decided; issue #29 lands the first
-one, with the version and the commit it was built from.
+No subcommand that computes anything is implemented yet. This build is the
+scaffold: it exists so that the build, the test harness and the release route
+can be checked before there is anything to compute. Any other argument prints
+this same text and exits zero, because no argument grammar has been decided
+beyond --version.
 
 docs/BUILD.md says how this was built. docs/decisions/ says what it will do and
 why, and is readable without the source.
 ```
 
 It exits zero. There is nothing else it does yet.
+
+## Which code produced an artefact
+
+An output read years later, next to a report, has to be traceable to the code
+that produced it. The one command that answers that:
+
+```
+$ ./target/release/einschlag --version
+einschlag 0.0.0
+commit 78750c2e79ecc1f756172c9f2a74b425bc1d5834, working tree matched this commit
+```
+
+The version comes from the manifest. The commit is derived by
+`crates/einschlag/build.rs` at build time by running `git`, not written into a
+file, because a literal is a statement about the last time somebody remembered to
+update it.
+
+The third field is whether the source the build was made from matched that
+commit. It reads `working tree matched this commit`, `working tree had
+uncommitted changes at build time`, or `working tree state unknown`. A build made
+where `git` could not answer, from an unpacked source archive for instance,
+reports the commit as `unknown` rather than guessing.
+
+**The third field can be one build behind, and a modified tree can therefore
+report as matching.** The marker is derived when the build script runs, and a
+build script does not run on every build. It reruns when the core crate's `src`,
+`Cargo.toml` or `build.rs` changes, or when `HEAD`, the branch ref or the git
+index changes. An edit anywhere else in the workspace, built with nothing having
+touched the git index in between, leaves the previous marker in place. Reproduced
+on Windows and intermittent, because unrelated git commands rewrite the index and
+hide it. Issue #84 holds the measurement and the mechanism, and quotes the runs.
+
+**Until #26 lands the lock file, a real clone reports `working tree had
+uncommitted changes at build time` on every build**, because `Cargo.lock` is
+untracked and Cargo writes it before the build script runs. The clean reading
+quoted above came from a scratch copy with `Cargo.lock` in `.git/info/exclude`,
+which is a local exclusion and not something in the tree.
 
 ## The layout
 
@@ -98,8 +142,8 @@ to being drivable from outside by a documented input format, a documented output
 artefact and a command line contract, and a front end wired into the library's
 internals is a front end no second one can be written beside.
 
-`fixtures/` is the test material. Its layout is issue #23 and it holds nothing
-yet.
+`fixtures/` is the test material. `docs/TESTING.md` says what goes there, and it
+holds nothing yet.
 
 ## What is not here
 
