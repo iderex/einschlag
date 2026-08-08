@@ -143,11 +143,33 @@ its own reads, writes and sends. Everything above is on the operator and their
 organisation, and the published practice this audience already works to, read in
 `survey/field-practice.md`, places it there too.
 
-## Where the mechanism is owed
+## What refuses a violation of "What the tool sends", and what does not
 
 The claim in "What the tool sends" is the one an adversary would most want to be
-false, and it is currently held by this document and by reading the source. Issue
-#63 owes the test that refuses a violation of it.
+false. Until #63 landed it was held by this document and by whoever read the
+source. Part of it is now held by a check, and the part that is not is the
+larger one.
 
-Until that lands, this section is the disclosure: the rule is written down, a
-person can check it, and no machine refuses breaking it.
+**What is refused.** `crates/einschlag/tests/nothing_goes_out.rs` reads the
+resolved dependency graph and refuses a package that is not on a declared list,
+and a package whose name says it opens connections. The judgement is made against
+the graph rather than against the source, so a network stack that arrived five
+levels down behind a dependency nobody looked past fails the same way a direct one
+does. Nothing can enter the build without somebody adding its name to that list
+and reading the reason written beside it.
+
+**What is not refused, and this is the larger half.** Every claim that check makes
+is about names. The packages on the list are not shown to open no socket. Nothing
+reads a syscall, a symbol table, a linked import or a running process. Above all,
+code written directly in this repository can reach the standard library and open a
+socket without any package name changing, and the check stays green, because the
+standard library is not a package in the graph.
+
+So the position today: a network capability cannot arrive here unnoticed inside
+somebody else's crate, and it can be written here by hand. Issue #96 holds the
+mechanism that would judge the built artefact or a run of it rather than a list of
+names.
+
+The graph is read out of `Cargo.lock`, which Cargo writes before it builds and
+which is untracked until #26. The check refuses a file it cannot read rather than
+reporting an empty graph, because an empty answer reads exactly like a clean one.
