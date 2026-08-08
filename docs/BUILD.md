@@ -108,8 +108,8 @@ dependency would not be refused. There are no dependencies outside the workspace
 today, which bounds what that can currently do rather than removing it. Issue #26
 commits the lock and adds `--locked` to the routes that build and test.
 
-**No test command.** There is no test harness in the tree at this commit. Issue
-#23 lands it and `docs/TESTING.md`.
+**The test command is not here.** `cargo test` and what it prints are
+`docs/TESTING.md`.
 
 **No formatter, no linter, no continuous integration that builds anything.** The
 workflows in `.github/workflows/` at this commit check sign-off, dependencies,

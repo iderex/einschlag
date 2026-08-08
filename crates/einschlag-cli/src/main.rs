@@ -33,3 +33,24 @@ why, and is readable without the source.
 "
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::usage;
+
+    /// The banner has to name the tool and has to say that nothing is
+    /// implemented. An operator who reads a usage text and then finds every
+    /// command in it missing has been told something untrue by this tool.
+    #[test]
+    fn usage_names_the_tool_and_admits_it_does_nothing_yet() {
+        let text = usage();
+        assert!(
+            text.contains(einschlag::TOOL_NAME),
+            "the usage text does not name the tool: {text}"
+        );
+        assert!(
+            text.contains("No subcommand is implemented yet"),
+            "the usage text no longer says the tool does nothing yet: {text}"
+        );
+    }
+}
