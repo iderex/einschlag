@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/einschlag", "crates/einschlag-cli", "crates/einschlag-hardware-harness"]
+default-members = ["crates/einschlag", "crates/einschlag-cli"]
 
 # Shared by both members so neither can drift from the other. There is no
 # `rust-version` key here on purpose; the reason is in docs/BUILD.md and in

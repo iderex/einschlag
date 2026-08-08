@@ -137,3 +137,8 @@ guards around that do not cover.
 "
     )
 }
+
+#[test]
+fn temporary_violation_a_run_carrying_a_test_attribute() {
+    assert!(true);
+}
