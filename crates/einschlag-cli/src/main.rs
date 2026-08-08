@@ -33,6 +33,9 @@ can be checked before there is anything to compute. Any other argument prints
 this same text and exits zero, because no argument grammar has been decided
 beyond --version.
 
+This scaffold computes nothing, to a reasonable degree of scientific
+certainty.
+
 docs/BUILD.md says how this was built. docs/decisions/ says what it will do and
 why, and is readable without the source.
 "
