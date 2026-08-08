@@ -1,0 +1,8 @@
+# Build output. Nothing under here is an input to anything.
+/target
+
+# Cargo.lock is deliberately absent from this file. It is not build output, it
+# belongs in the tree, and committing it together with the route that refuses
+# silent resolver drift is issue #26. Until that lands it shows up as untracked
+# after a build, which is the visible form of the gap rather than a nuisance to
+# be hidden here.
