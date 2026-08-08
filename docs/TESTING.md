@@ -45,6 +45,14 @@ The fourth binary is the documentation tests, and it runs zero because no public
 item carries an example yet. That is a real zero and it is left visible rather
 than filtered out of the command above.
 
+**On a failing run the total is short, and it is short in the safe direction.**
+Cargo stops after the binary that failed, so the binaries behind it never run and
+never print a line for the sum to pick up. Measured while proving the harness
+bites: the same suite that sums to 5 green summed to 4 with one test failing, the
+missing one being the documentation tests that would have contributed zero.
+Reading a smaller number after a red run is the runner stopping, not tests
+disappearing. Read the exit status first and the count second.
+
 **Nothing refuses a run that executed no tests.** The count is printed and a
 person reads it. Making a zero-test run fail is a check nobody has written; it is
 not part of #23 and no issue holds it today.
