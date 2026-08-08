@@ -124,7 +124,7 @@ impl Figure {
     }
 
     /// The header line matching [`Figure::line`], for a file holding several.
-    pub fn header() -> String {
+    pub fn field_header() -> String {
         FIELD_ORDER.join(&FIELD_SEPARATOR.to_string())
     }
 }
@@ -270,7 +270,7 @@ mod tests {
             "the recorded line does not have one field per name in FIELD_ORDER: {line:?}"
         );
         assert_eq!(
-            Figure::header().split(FIELD_SEPARATOR).count(),
+            Figure::field_header().split(FIELD_SEPARATOR).count(),
             FIELD_ORDER.len(),
             "the header and the line disagree about how many fields there are"
         );
