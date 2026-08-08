@@ -115,3 +115,26 @@ fn version_says_whether_the_tree_it_was_built_from_was_modified() {
         "--version reports a commit without saying whether the source matched it: {stdout}"
     );
 }
+
+#[test]
+fn nothing_the_tool_prints_carries_a_refused_phrase() {
+    // The scan in the core crate reads these strings as source. This reads what
+    // the process actually wrote, which is the thing the property is about and
+    // which parts company with the source the moment a string is composed
+    // rather than written out.
+    for arguments in [Vec::new(), vec!["--version"], vec!["--no-such-option"]] {
+        let run = Command::new(BIN)
+            .args(&arguments)
+            .output()
+            .expect("the binary starts");
+        for (stream, bytes) in [("stdout", &run.stdout), ("stderr", &run.stderr)] {
+            let text = String::from_utf8_lossy(bytes);
+            if let Some(phrase) = einschlag::vocabulary::first_refused(&text) {
+                panic!(
+                    "running with {arguments:?} printed {:?} on {stream}, from {}",
+                    phrase.text, phrase.source
+                );
+            }
+        }
+    }
+}
