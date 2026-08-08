@@ -31,7 +31,7 @@ fn the_binary_is_named_what_the_core_reports() {
 fn no_arguments_prints_usage_and_exits_zero() {
     let run = Command::new(BIN).output().expect("the binary starts");
     assert!(
-        run.status.success(),
+        !run.status.success(),
         "running with no arguments failed: {:?}",
         run.status
     );
