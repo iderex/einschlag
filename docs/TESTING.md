@@ -19,31 +19,29 @@ silently runs zero tests satisfies all of them, so the number that ran is the
 first thing to read, before whether it was green.
 
 **Cargo prints a count per test binary and no total.** That is a property of the
-runner and not of this repository, and it matters because four "0 passed" lines
-and one real one look at a glance like a suite that ran. The per-binary lines:
+runner and not of this repository, and it matters because a handful of "0 passed"
+lines and a few real ones look at a glance like a suite that ran. How many
+binaries there are, how many of them run nothing, and the total no line of the
+output carries:
 
 ```
-$ cargo test 2>&1 | grep -E '^running |^test result:'
-running 1 test
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-running 1 test
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-running 3 tests
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
-running 0 tests
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-```
-
-The total, derived from those lines rather than counted by hand:
-
-```
+$ cargo test 2>&1 | grep -c '^running '
+14
+$ cargo test 2>&1 | grep -c '^running 0 tests'
+3
 $ cargo test 2>&1 | awk '/^test result:/ { n += $4 } END { print n }'
-5
+56
 ```
 
-The fourth binary is the documentation tests, and it runs zero because no public
-item carries an example yet. That is a real zero and it is left visible rather
-than filtered out of the command above.
+Those three numbers move every time a test is added, so re-run the commands
+rather than quoting these. They are here to say what the shape of the output is,
+not to be a figure anybody cites.
+
+The three zeros are real and are left visible rather than filtered out. Two are
+the documentation tests of the two libraries, which run nothing because no public
+item carries an example yet. The third is the unit tests of the one run under
+`src/bin` in the hardware harness, and that line is the harness being compiled
+without being executed, which the section on it below is about.
 
 **On a failing run the total is short, and it is short in the safe direction.**
 Cargo stops after the binary that failed, so the binaries behind it never run and
@@ -75,6 +73,83 @@ Material goes there rather than beside the code so that the same file can be rea
 by a unit test, by an end-to-end run and by a person checking the tool by hand.
 It holds nothing yet; the first inputs arrive with the parser in #33.
 
+A run that needs equipment is none of these three, because it is not a test. The
+next section is where it goes.
+
+## The hardware harness
+
+Some things cannot be checked without firing at material and measuring what it
+did, and some cannot be checked without a total station or a scanner. Those runs
+are worth making. They are not tests: they need a person, a bench and an
+instrument, they cannot be repeated on demand, and a suite containing one cannot
+run on a borrowed machine or on an unattended runner.
+
+They live in `crates/einschlag-hardware-harness`, whose name says what it needs.
+**A run there is a binary under `src/bin` and never a test.** That is the whole
+separation and it is Cargo's rather than a rule somebody has to remember: the
+test runner has no way to start a binary.
+
+### What is in it, what it needs, and what it costs to run
+
+One run so far.
+
+**`record-figure`.** Writes one figure measured with equipment into the line the
+calibration report in #52 will read, refusing a figure that does not say which
+day it was measured and with what instrument.
+
+```
+cargo run -p einschlag-hardware-harness --bin record-figure -- \
+    --quantity "perforation major axis" \
+    --value 12.4 --unit mm \
+    --measured-on 2026-08-08 \
+    --equipment "digital caliper, bench 1"
+```
+
+What it requires is a measurement already made: an instrument, a bench, and a
+person who read a number off it. The program itself drives nothing and invents
+nothing. What that costs is the bench work, and no figure for it has been
+measured, so none is quoted here.
+
+**No run in this harness drives an instrument today**, and none compares anything
+against the core, because the core computes nothing yet. The harness exists now
+so that the first run that does has somewhere to go other than the default suite.
+Nothing reads a recorded figure either: #52 is the report that would, and it does
+not exist.
+
+### What refuses a violation, and what it does not cover
+
+The unit tests in `crates/einschlag-hardware-harness/src/lib.rs` refuse the four
+shapes that would undo the separation. Three would put a run into the default
+suite: a `tests` directory in the crate, a `[[test]]` target in its manifest, and
+a `#[test]` attribute inside a run, which `cargo test` would execute as a unit
+test of that binary. The fourth would remove the compilation instead: a
+`default-members` list in the workspace manifest that leaves this crate out.
+
+The compilation is the other half of the arrangement. This crate is an ordinary
+workspace member, so `cargo test` builds every target in it and a change to the
+core that breaks a run is caught by the default suite even though no run is
+executed by it. The line
+
+```
+Running unittests src\bin\record-figure.rs
+```
+
+in a `cargo test` run is that compilation, and the count printed under it is
+zero.
+
+**What the guards do not cover.** They read the shape of the crate, not the
+meaning of what is in it. A run written into the library's own unit tests rather
+than into a binary would be executed by the default suite and nothing here would
+refuse it, because nothing can tell a unit test of the recording types from one
+that expects a bench. They also say nothing about a continuous integration job
+invoking the harness deliberately: no such job exists yet, #24 is where the first
+one is written, and what a job runs is decided in the job.
+
+**A figure from a run nobody can repeat is still evidence, and it is weaker
+evidence.** The date and the equipment are what keep it readable as the weaker
+kind, which is why the record refuses to exist without them. That the report
+carrying them says which kind it is holding is #52's half and is not done.
+
 ## Headless and unprivileged
 
 **Every test in the default suite runs with no display available and with no
@@ -88,8 +163,8 @@ hold now and expensive after the first test that needs a window.
 
 A test that genuinely needs hardware, a display or a privilege is not deleted. It
 goes outside the default suite, is named for what it is, and is disclosed
-wherever its absence matters. Issue #53 is the first of those, for the hardware
-harness.
+wherever its absence matters. The hardware harness is the first of those and the
+section above says where it is and what keeps it out.
 
 ### What refuses a violation, and what does not
 
