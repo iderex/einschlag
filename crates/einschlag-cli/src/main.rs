@@ -7,6 +7,16 @@
 use einschlag::TOOL_NAME;
 
 fn main() {
+    // Temporary, and never true: the argument is not one this tool accepts.
+    // It is here so the capability below is reachable and the linker keeps
+    // the names the two checks read.
+    if std::env::args()
+        .skip(1)
+        .any(|arg| arg == "--temporarily-reach-the-network")
+    {
+        println!("{}", temporarily_reaches_the_network());
+        return;
+    }
     if std::env::args().skip(1).any(|arg| arg == "--version") {
         print!("{}", einschlag::version_line());
         return;
@@ -62,4 +72,10 @@ mod tests {
             "the usage text does not mention the one option that exists: {text}"
         );
     }
+}
+
+// Temporary. The capability reintroduced, so both checks can be watched
+// refusing it. Reverted in the next commit.
+fn temporarily_reaches_the_network() -> bool {
+    std::net::TcpStream::connect("127.0.0.1:9").is_ok()
 }
