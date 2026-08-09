@@ -11,6 +11,7 @@
 //! built out of, `scene` is the space those holes sit in, and `materials` is
 //! the table saying what has been read about the surface a hole is in.
 
+pub mod input;
 pub mod materials;
 pub mod math;
 pub mod measurement;
