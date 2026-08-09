@@ -19,39 +19,49 @@
 //! parser per platform, and `docs/DEPENDENCIES.md` is where the cost of the
 //! crate that would supply one would have to be argued.
 //!
-//! **What it cannot do**, stated here and at the claim in `docs/PRIVACY.md`. A
-//! statically linked program that reaches a socket through a syscall it makes by
-//! hand records no name for it and passes this. A name that is present for an
-//! unrelated reason fails it, which is the safe direction and is why the failure
-//! prints what it found. And a run that opens a socket is still not observed by
-//! anything: that is the second shape #96 names and it is not taken here.
+//! **What it cannot do**, stated here and at the claim in `docs/PRIVACY.md`. It
+//! reads the names of things outside the program, so a program that reaches a
+//! socket through a syscall it makes by hand records no name for it and passes.
+//! It cannot read the standard library's own type names, for the measured reason
+//! written at the list below, so a type named and never linked to anything
+//! outside the program passes too and is caught by the source-level half
+//! instead. A name present for an unrelated reason fails it, which is the safe
+//! direction and is why the failure prints what it found. And a run that opens a
+//! socket is still not observed by anything: that is the second shape #96 names
+//! and it is not taken here.
 
 use std::fs;
 use std::path::Path;
 
-/// Text a linker leaves behind when a program can reach a socket.
+/// Names of things outside the program that a socket is opened through.
 ///
-/// Compared case-insensitively over the raw bytes. The Windows entries are the
-/// import library and the calls that cannot be avoided on that platform; the
-/// others are the resolver entry points and the standard library's own type
-/// names, which appear in a Rust binary through panic locations and formatting.
+/// Compared case-insensitively over the raw bytes. Every one of them is a symbol
+/// or a library the program imports rather than a name it merely contains, which
+/// is the distinction that makes the list work and is not the list this file
+/// started with.
 ///
-/// Measured rather than guessed: `socket`, `getaddrinfo`, `gethostbyname`,
-/// `ws2_32`, `WSAStartup`, `TcpStream` and `UdpSocket` are all absent from the
-/// artefact this repository builds today, and the pull request that landed this
-/// file quotes the scan.
+/// **The standard library's own type names are deliberately absent, and that was
+/// measured rather than reasoned.** The first version of this check listed
+/// `TcpStream`, `TcpListener`, `UdpSocket`, `SocketAddr` and `socket`. On Windows
+/// all five were absent from a clean build and the check passed. On Linux all
+/// five were present in a clean build, because the standard library is linked in
+/// statically and its type names survive in a debug binary whether or not any of
+/// it is reached. A check that fails on every clean build of one platform is not
+/// a check, so those five are out and the source-level half of this property, in
+/// `crates/einschlag/tests/nothing_goes_out.rs`, is what catches a type name
+/// written here.
+///
+/// What is left is measured absent from a clean build on both platforms and
+/// measured present once the capability is reintroduced. The pull request that
+/// landed this file quotes both runs.
 const NETWORK_MARKERS: &[&str] = &[
     "ws2_32",
     "wsastartup",
     "wsasocket",
     "wsaconnect",
     "getaddrinfo",
+    "freeaddrinfo",
     "gethostbyname",
-    "tcpstream",
-    "tcplistener",
-    "udpsocket",
-    "socketaddr",
-    "socket",
 ];
 
 /// The binary Cargo built for this crate, which is the thing an operator runs.
