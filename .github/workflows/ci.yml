@@ -4,13 +4,17 @@
 # them builds or tests anything, so until this file landed nothing outside a
 # developer's own machine had ever built this workspace.
 #
-# **The four job names below are matched literally elsewhere.** They are what a
-# branch protection rule names when it requires a check, and a rename here that
-# nobody notices removes a requirement without removing anything visible.
-# docs/BUILD.md carries the same four names and says the same thing. Entry 3 of
-# issue #1 is where requiring them is decided; today the ruleset on this
-# repository requires no status check at all, which CONTRIBUTING.md quotes with
-# the command that produced it.
+# **The four names build, test, fmt and lint are matched literally elsewhere.**
+# They are what a branch protection rule names when it requires a check, and a
+# rename here that nobody notices removes a requirement without removing anything
+# visible. docs/BUILD.md carries the same four names and says the same thing.
+# Entry 3 of issue #1 is where requiring them is decided; today the ruleset on
+# this repository requires no status check at all, which CONTRIBUTING.md quotes
+# with the command that produced it.
+#
+# coverage is a fifth job and is deliberately not one of those four. It measures
+# and prints a number and enforces no threshold, so there is nothing there for a
+# rule to require. Issue #55 is where a threshold is set against this baseline.
 #
 # **Every command below is one docs/BUILD.md or docs/TESTING.md gives a person to
 # type.** Not a variant of it, not a superset. Two procedures that drift apart is
@@ -128,6 +132,35 @@ jobs:
           exit "$failed"
       - name: cargo test --locked
         run: cargo test --locked
+
+  # Not one of the four names above. It prints a number and enforces nothing:
+  # #28 asks for the measurement and says in as many words that a threshold set
+  # before there is code to measure is a number picked from the air. #55 is where
+  # one is set against this baseline.
+  #
+  # This is its own job rather than a step in `test`, because installing the
+  # subcommand costs minutes and `test` is the signal somebody watches. What it
+  # costs to keep them apart is a second compile of the workspace, under
+  # instrumentation, which is not the same compile anyway.
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # From crates.io at an exact version, with --locked, rather than from an
+      # action that fetches a release binary. It is slower and it is the same
+      # trust root as every other package this workspace resolves, which is one
+      # fewer supply-chain surface to argue about for a job that gates nothing.
+      # rust-toolchain.toml names llvm-tools, so the instrumentation this needs
+      # arrives with the pinned compiler rather than from a separate install.
+      - name: cargo install --locked cargo-llvm-cov@0.8.7
+        run: cargo install --locked cargo-llvm-cov@0.8.7
+      - name: cargo llvm-cov --workspace --locked --summary-only
+        run: cargo llvm-cov --workspace --locked --summary-only
 
   fmt:
     name: fmt

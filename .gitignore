@@ -7,3 +7,11 @@
 # input years later. Ignoring it would leave every clone free to resolve
 # something else and call the result the same program. What refuses that is
 # --locked on the build, test and lint jobs in .github/workflows/ci.yml.
+
+# Raw profiles from a coverage run. cargo llvm-cov keeps its own under target,
+# but the end-to-end test starts the built binary with an empty environment,
+# which drops the variable naming that path, so the instrumented child writes one
+# beside its own manifest instead. They are output, they are large, and an
+# untracked one makes the tree read as modified, which is a value the artefact
+# reports. docs/TESTING.md says where the coverage command puts things.
+*.profraw

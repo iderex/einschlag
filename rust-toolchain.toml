@@ -20,4 +20,8 @@ profile = "minimal"
 #
 # They are the reason the profile above is not the whole story: "minimal" is the
 # compiler, Cargo and the standard library, and neither of these is in it.
-components = ["rustfmt", "clippy"]
+# llvm-tools is here for a different reason from the other two: nothing in the
+# default routes uses it, and the coverage command in docs/TESTING.md does. It is
+# a component rather than a separate download so that the instrumentation and the
+# compiler that produced the profile are the same release.
+components = ["rustfmt", "clippy", "llvm-tools"]
