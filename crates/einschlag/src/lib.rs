@@ -8,8 +8,10 @@
 //!
 //! What fills it is decided in `docs/decisions/` and carried by milestones 4
 //! and 5. `measurement` is the hole record and the measured quantity it is
-//! built out of, and `scene` is the space those holes sit in.
+//! built out of, `scene` is the space those holes sit in, and `materials` is
+//! the table saying what has been read about the surface a hole is in.
 
+pub mod materials;
 pub mod math;
 pub mod measurement;
 pub mod sampling;
