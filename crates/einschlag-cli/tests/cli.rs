@@ -75,11 +75,7 @@ fn version_reports_the_commit_the_artefact_was_built_from() {
         .arg("--version")
         .output()
         .expect("the binary starts");
-    assert!(
-        run.status.success(),
-        "--version failed: {:?}",
-        run.status
-    );
+    assert!(run.status.success(), "--version failed: {:?}", run.status);
     let stdout = String::from_utf8(run.stdout).expect("stdout is UTF-8");
     assert!(
         stdout.contains(einschlag::VERSION),

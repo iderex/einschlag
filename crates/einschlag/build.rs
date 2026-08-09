@@ -38,7 +38,10 @@ fn main() {
 
     println!("cargo::rustc-env=EINSCHLAG_BUILD_COMMIT={commit}");
     println!("cargo::rustc-env=EINSCHLAG_BUILD_TREE_STATE={tree_state}");
-    println!("cargo::rustc-env=EINSCHLAG_BUILD_RUSTC_VERSION={}", compiler_version());
+    println!(
+        "cargo::rustc-env=EINSCHLAG_BUILD_RUSTC_VERSION={}",
+        compiler_version()
+    );
 
     for path in rerun_triggers(root.as_deref()) {
         println!("cargo::rerun-if-changed={}", path.display());
@@ -97,7 +100,11 @@ fn repository_root() -> Option<PathBuf> {
 /// Runs git and returns its trimmed standard output, or `None` if git is
 /// missing, fails, or writes something that is not UTF-8.
 fn git(dir: &Path, args: &[&str]) -> Option<String> {
-    let out = Command::new("git").current_dir(dir).args(args).output().ok()?;
+    let out = Command::new("git")
+        .current_dir(dir)
+        .args(args)
+        .output()
+        .ok()?;
     if !out.status.success() {
         return None;
     }
@@ -119,7 +126,11 @@ fn is_object_name(s: &str) -> bool {
 /// index leaves the previous marker in place until this crate is rebuilt.
 fn rerun_triggers(root: Option<&Path>) -> Vec<PathBuf> {
     let here = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap_or_default());
-    let mut paths = vec![here.join("src"), here.join("Cargo.toml"), here.join("build.rs")];
+    let mut paths = vec![
+        here.join("src"),
+        here.join("Cargo.toml"),
+        here.join("build.rs"),
+    ];
 
     let Some(root) = root else { return paths };
     let Some(git_dir) = git(root, &["rev-parse", "--absolute-git-dir"]).map(PathBuf::from) else {

@@ -192,5 +192,11 @@ fn last_places_apart(left: f64, right: f64) -> i64 {
     if left.is_nan() || right.is_nan() {
         return 0;
     }
-    (left.to_bits() as i64).saturating_sub(right.to_bits() as i64)
+    // `cast_signed` rather than `as`, because the two say different things and
+    // only one of them is checkable. The bit pattern of a positive double is
+    // below 2^63 and cannot wrap, and the reader of `as` has to work that out;
+    // the named conversion says the wrap was considered.
+    left.to_bits()
+        .cast_signed()
+        .saturating_sub(right.to_bits().cast_signed())
 }

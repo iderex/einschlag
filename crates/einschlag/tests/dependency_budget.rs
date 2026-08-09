@@ -161,11 +161,13 @@ fn dependency_lines(manifest: &Path) -> Vec<(String, String)> {
             continue;
         }
 
-        if let Some(header) = line.strip_prefix('[').and_then(|rest| rest.strip_suffix(']')) {
+        if let Some(header) = line
+            .strip_prefix('[')
+            .and_then(|rest| rest.strip_suffix(']'))
+        {
             let header = header.trim();
             assert!(
-                !(header.contains("dependencies")
-                    && !DEPENDENCY_SECTIONS.contains(&header)),
+                !(header.contains("dependencies") && !DEPENDENCY_SECTIONS.contains(&header)),
                 "{}: the section [{header}] names dependencies and this reader does not know it. \
                  Teach the reader that form rather than letting it report nothing.",
                 manifest.display()

@@ -12,3 +12,12 @@
 [toolchain]
 channel = "1.97.0"
 profile = "minimal"
+
+# The formatter and the linter, named here so that a clone gets them from this
+# file rather than from an instruction somebody has to follow. Both are pinned to
+# the same release as the compiler by being components of it, which is what stops
+# two machines disagreeing about what is formatted or what is a warning.
+#
+# They are the reason the profile above is not the whole story: "minimal" is the
+# compiler, Cargo and the standard library, and neither of these is in it.
+components = ["rustfmt", "clippy"]

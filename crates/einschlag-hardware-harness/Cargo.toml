@@ -16,3 +16,8 @@ publish.workspace = true
 # suite compiling, which is the half of issue #53 that asks for a run nobody
 # executes to still be checked for validity.
 einschlag = { path = "../einschlag" }
+
+# Every warning is refused rather than printed, and the levels are in the
+# workspace manifest so that all three crates carry the same ones.
+[lints]
+workspace = true

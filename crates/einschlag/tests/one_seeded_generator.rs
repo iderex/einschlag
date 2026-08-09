@@ -70,7 +70,10 @@ const SKIPPED_DIRECTORIES: [&str; 2] = [".git", "target"];
 
 #[test]
 fn nothing_in_the_workspace_reaches_for_a_draw_outside_the_seeded_generator() {
-    assert_no_name(SOURCES, "a source of draws that is not the seeded generator");
+    assert_no_name(
+        SOURCES,
+        "a source of draws that is not the seeded generator",
+    );
 }
 
 #[test]
@@ -85,7 +88,10 @@ fn nothing_in_the_workspace_seeds_itself_from_the_machine() {
 fn the_lists_are_not_empty() {
     // Either list emptying would leave the test above it passing on nothing.
     assert!(!SOURCES.is_empty(), "the source list is empty");
-    assert!(!IMPLICIT_SEEDS.is_empty(), "the implicit seed list is empty");
+    assert!(
+        !IMPLICIT_SEEDS.is_empty(),
+        "the implicit seed list is empty"
+    );
 }
 
 #[test]

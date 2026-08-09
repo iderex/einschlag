@@ -154,6 +154,20 @@ pub fn to_degrees(radians: f64) -> f64 {
 }
 
 #[cfg(test)]
+// Every exact comparison below is one of two shapes: a repeated product against
+// the product written out, or a conversion against a constant the standard
+// library holds exactly. In both the exactness is what is being tested, and a
+// tolerance would pass on the arithmetic having changed, which is the failure
+// these exist to catch.
+//
+// The expectation is on the module rather than on each test, because the
+// argument is one argument and four copies of it would drift. What that costs is
+// reach: a later test in here that compares two computed values, where a
+// tolerance would be right, is covered by this as well and nothing would say so.
+// Such a test belongs beside a comparison written with an explicit bound, as
+// `the_two_angle_conversions_are_each_others_inverse_to_the_last_places` below
+// already is.
+#[expect(clippy::float_cmp, reason = "see the paragraphs above this attribute")]
 mod tests {
     use super::{powi, to_degrees, to_radians};
 

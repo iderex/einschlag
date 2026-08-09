@@ -17,7 +17,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use einschlag::vocabulary::{first_refused, REFUSED};
+use einschlag::vocabulary::{REFUSED, first_refused};
 
 /// The files allowed to carry a refused phrase, each with the reason.
 ///

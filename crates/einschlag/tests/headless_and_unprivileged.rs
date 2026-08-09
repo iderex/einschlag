@@ -70,8 +70,14 @@ fn no_source_in_the_workspace_asks_for_elevated_rights() {
 #[test]
 fn the_marker_lists_are_not_empty() {
     // Either list emptying would leave both tests above passing on nothing.
-    assert!(!DISPLAY_MARKERS.is_empty(), "the display marker list is empty");
-    assert!(!ELEVATION_MARKERS.is_empty(), "the elevation marker list is empty");
+    assert!(
+        !DISPLAY_MARKERS.is_empty(),
+        "the display marker list is empty"
+    );
+    assert!(
+        !ELEVATION_MARKERS.is_empty(),
+        "the elevation marker list is empty"
+    );
 }
 
 #[test]
@@ -97,7 +103,8 @@ fn assert_no_marker(markers: &[&str], what: &str) {
             continue;
         };
         for (number, line) in text.lines().enumerate() {
-            for token in line.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '.')) {
+            for token in line.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '.'))
+            {
                 let token = token.trim_matches('.').to_ascii_lowercase();
                 if markers.contains(&token.as_str()) {
                     offences.push(format!("{relative}:{} names {token:?}", number + 1));

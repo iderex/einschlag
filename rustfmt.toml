@@ -1,0 +1,31 @@
+# The formatter's configuration. Tracked, so the rules are the clone's rather
+# than the machine's.
+#
+# It is short on purpose. The default Rust style is the one every reader of this
+# language already knows, and a house style is a thing every contributor has to
+# learn before the first diff is readable. What is set here is the two keys that
+# stop the default moving under the tree.
+#
+# `docs/BUILD.md` carries the command that runs it.
+
+# The edition the parser reads the source under. `cargo fmt` takes this from the
+# manifest, so this key is for a bare `rustfmt` invocation, which would otherwise
+# fall back to an older edition and reformat code it had misparsed.
+edition = "2024"
+
+# The style rules themselves are versioned separately from the edition, and this
+# pins which set applies. Without it a later toolchain could reformat the whole
+# tree for a reason nobody chose. `rust-toolchain.toml` pins the compiler, and
+# this is the same idea one level down.
+style_edition = "2024"
+
+# `newline_style` is deliberately not set, so it stays at `Auto` and the
+# formatter preserves whatever line endings a file already has.
+#
+# Setting it to `Unix` looks like the stricter choice and is not. This
+# repository tracks no `.gitattributes`, so on a Windows clone with
+# `core.autocrlf=true` the working tree holds CRLF while the index holds LF.
+# `Unix` would make the formatting check fail on every file on that clone, for a
+# difference git has already normalised on the way in and no reader would ever
+# see. A gate that is red for everybody on one platform is a gate that gets
+# skipped.
