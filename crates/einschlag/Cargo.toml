@@ -11,3 +11,8 @@ publish.workspace = true
 # release of this crate may return a different last place, which is the thing
 # docs/decisions/0013-platform-math-out-of-the-numeric-core.md pins.
 libm = "=0.2.16"
+
+# Every warning is refused rather than printed, and the levels are in the
+# workspace manifest so that all three crates carry the same ones.
+[lints]
+workspace = true

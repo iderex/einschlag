@@ -13,3 +13,42 @@ members = ["crates/einschlag", "crates/einschlag-cli", "crates/einschlag-hardwar
 version = "0.0.0"
 edition = "2024"
 publish = false
+
+# The linter's configuration, and the reason it is here rather than in a flag on
+# a continuous-integration command line.
+#
+# A `-D warnings` written into a job is a rule that holds where the job runs and
+# nowhere else, so the first a contributor hears of it is a red build on work
+# that was quiet on their own machine. Set in the manifest it reaches every route
+# that compiles this workspace: `cargo build`, `cargo test`, `cargo clippy` and a
+# run inside an editor. A warning is refused at the moment it is written.
+#
+# The levels are `deny` rather than `forbid` so that a site with a reason can
+# carry an `#[expect]` naming it. `forbid` cannot be overridden anywhere, which
+# turns every deliberate exception into a reason to weaken the whole setting.
+#
+# Each member opts in with `[lints] workspace = true`; a crate that forgets is a
+# crate these do not reach.
+[workspace.lints.rust]
+# The whole of rustc's warning set, including the ones added by a later
+# compiler. That is safe to say here because `rust-toolchain.toml` pins an exact
+# release, so the set does not move until somebody moves the pin.
+warnings = "deny"
+
+[workspace.lints.clippy]
+# `priority = -1` puts the group below any individual lint written after it, so a
+# single lint can be turned down without the group having to be.
+all = { level = "deny", priority = -1 }
+
+# The lints this project is here for. They are not in `clippy::all`; they live in
+# `clippy::pedantic`, which as a whole is not enabled, and they are named
+# individually rather than by enabling the group so that the list says what was
+# chosen. The tool converts measurements into a distribution, and every one of
+# these is a silent way for a number to stop meaning what the code says it means.
+cast_lossless = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_precision_loss = "deny"
+cast_sign_loss = "deny"
+float_cmp = "deny"
+lossy_float_literal = "deny"

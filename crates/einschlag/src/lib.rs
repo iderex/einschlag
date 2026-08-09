@@ -59,7 +59,7 @@ pub fn version_line() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{version_line, BUILD_COMMIT, BUILD_TREE_STATE, TOOL_NAME, VERSION};
+    use super::{BUILD_COMMIT, BUILD_TREE_STATE, TOOL_NAME, VERSION, version_line};
 
     /// The name is written into a usage banner and typed at a shell. A name
     /// carrying whitespace or a byte outside ASCII would have to be quoted to be
@@ -72,10 +72,7 @@ mod tests {
             !TOOL_NAME.chars().any(char::is_whitespace),
             "the name carries whitespace and would need quoting: {TOOL_NAME:?}"
         );
-        assert!(
-            TOOL_NAME.is_ascii(),
-            "the name is not ASCII: {TOOL_NAME:?}"
-        );
+        assert!(TOOL_NAME.is_ascii(), "the name is not ASCII: {TOOL_NAME:?}");
     }
 
     /// The failure this refuses is a build configuration that drops the field.

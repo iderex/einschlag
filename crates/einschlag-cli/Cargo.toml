@@ -11,3 +11,8 @@ path = "src/main.rs"
 
 [dependencies]
 einschlag = { path = "../einschlag" }
+
+# Every warning is refused rather than printed, and the levels are in the
+# workspace manifest so that all three crates carry the same ones.
+[lints]
+workspace = true

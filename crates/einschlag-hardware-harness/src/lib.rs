@@ -238,7 +238,7 @@ fn field(name: &'static str, value: &str) -> Result<String, Refusal> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Figure, MeasuredOn, Refusal, FIELD_ORDER, FIELD_SEPARATOR};
+    use super::{FIELD_ORDER, FIELD_SEPARATOR, Figure, MeasuredOn, Refusal};
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -339,8 +339,7 @@ mod tests {
     /// Every file under `src/bin`, which is where a run lives.
     fn run_sources() -> Vec<PathBuf> {
         let bin = here().join("src").join("bin");
-        let entries =
-            fs::read_dir(&bin).unwrap_or_else(|why| panic!("cannot read {bin:?}: {why}"));
+        let entries = fs::read_dir(&bin).unwrap_or_else(|why| panic!("cannot read {bin:?}: {why}"));
         entries
             .map(|entry| entry.expect("the directory entry is readable").path())
             .filter(|path| path.extension().is_some_and(|kind| kind == "rs"))

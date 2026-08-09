@@ -154,10 +154,7 @@ impl Generator {
 
     /// The next value in the sequence.
     pub fn next_u64(&mut self) -> u64 {
-        let result = self.state[1]
-            .wrapping_mul(5)
-            .rotate_left(7)
-            .wrapping_mul(9);
+        let result = self.state[1].wrapping_mul(5).rotate_left(7).wrapping_mul(9);
         let shifted = self.state[1] << 17;
 
         self.state[2] ^= self.state[0];
@@ -175,6 +172,13 @@ impl Generator {
     /// The top 53 bits, which is every bit an `f64` can hold without rounding,
     /// scaled by an exact power of two. Both operations are exact, so no value
     /// outside the half-open interval can be produced by rounding.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "both casts are exact and the paragraph above is the argument: \
+                  2^53 is representable, and a value shifted down to 53 bits is \
+                  inside the mantissa. The lint reads the widths of the types \
+                  and cannot read either range."
+    )]
     pub fn next_unit_interval(&mut self) -> f64 {
         const SCALE: f64 = 1.0 / (1_u64 << 53) as f64;
         (self.next_u64() >> 11) as f64 * SCALE
@@ -336,13 +340,30 @@ impl Population {
         self.values.is_empty()
     }
 
+    /// How many draws there are, as the number the three statistics below
+    /// divide by.
+    ///
+    /// One place rather than three, because the argument that the conversion is
+    /// exact is one argument. A `usize` reaches the last place an `f64` holds
+    /// exactly at 2^53 draws, which is more `f64` values than a machine has
+    /// bytes to hold; the population is a `Vec<f64>` in memory, so the count is
+    /// bounded by the allocation long before it is bounded by the mantissa.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "bounded by the allocation, as the paragraph above sets out. \
+                  The lint reads the width of `usize` and cannot read that bound."
+    )]
+    fn count(&self) -> f64 {
+        self.values.len() as f64
+    }
+
     /// The mean, summed in index order.
     pub fn mean(&self) -> f64 {
         let mut total = 0.0;
         for value in &self.values {
             total += value;
         }
-        total / self.values.len() as f64
+        total / self.count()
     }
 
     /// The spread of the draws, over `n - 1`.
@@ -359,7 +380,7 @@ impl Population {
             let difference = value - mean;
             total += difference * difference;
         }
-        (total / (self.values.len() - 1) as f64).sqrt()
+        (total / (self.count() - 1.0)).sqrt()
     }
 
     /// How far the mean of this population is expected to sit from the mean of
@@ -370,7 +391,7 @@ impl Population {
     /// sampling error that is wrong, which is worse than a wide answer because
     /// it is a narrow one that looks earned.
     pub fn standard_error(&self) -> f64 {
-        self.standard_deviation() / (self.values.len() as f64).sqrt()
+        self.standard_deviation() / self.count().sqrt()
     }
 
     /// The population as text, one draw per line.
@@ -418,9 +439,7 @@ impl Refusal {
                  it would compare nothing against nothing"
                     .to_owned()
             }
-            Self::NotFinite => {
-                "a distribution parameter is infinite or is not a number".to_owned()
-            }
+            Self::NotFinite => "a distribution parameter is infinite or is not a number".to_owned(),
             Self::NegativeStandardDeviation(value) => format!(
                 "the standard deviation {value} is negative, and an uncertainty below \
                  zero is a transcription mistake rather than a narrow measurement"
@@ -563,6 +582,11 @@ mod tests {
     /// An operator entitled to state a value with no uncertainty on it gets
     /// that value, rather than a spread invented around it.
     #[test]
+    #[expect(
+        clippy::float_cmp,
+        reason = "the exactness is the property. A tolerance here would pass on \
+                  a draw that had moved, which is the thing this refuses."
+    )]
     fn a_stated_uncertainty_of_zero_draws_the_stated_value() {
         let distribution = Distribution::normal(12.4, 0.0).expect("a valid normal");
         let drawn = Population::draw(distribution, run(3, 100));
@@ -590,10 +614,7 @@ mod tests {
     #[test]
     fn an_interval_the_wrong_way_round_is_refused_rather_than_swapped() {
         let refusal = Distribution::uniform(3.0, 2.0).expect_err("swapped bounds are refused");
-        assert!(matches!(
-            refusal,
-            Refusal::BoundsAreTheWrongWayRound { .. }
-        ));
+        assert!(matches!(refusal, Refusal::BoundsAreTheWrongWayRound { .. }));
     }
 
     #[test]

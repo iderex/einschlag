@@ -42,9 +42,11 @@ cargo 1.97.0 (c980f4866 2026-06-30)
 ```
 
 `profile = "minimal"` in the same file keeps a fresh install to the compiler,
-Cargo and the standard library. The components a formatter and a linter need are
-added by the issue that lands them, which is #22, rather than being installed
-here for a build that does not use them.
+Cargo and the standard library, and neither the formatter nor the linter is in
+that set. Both are named in the `components` list beside it, so rustup installs
+them from the tree rather than from an instruction somebody has to be given, and
+both are the build of them that ships with the pinned compiler. "The formatter"
+and "the linter" below are those two, and nothing chooses a different one.
 
 **A build that reaches `cargo` without rustup in front of it is not stopped by
 this pin, and it is refused by a test.** A distribution-packaged toolchain, a
@@ -80,6 +82,78 @@ edited in place so the second one cannot be repaired even if it should be. #21's
 body claimed the number appeared in exactly one tracked file, on a search that
 excluded `docs/`; that claim held only under that exclusion and this paragraph is
 the correction.
+
+## The formatter and the linter
+
+Two commands, and each one refuses rather than reports.
+
+```
+$ cargo fmt --all -- --check
+$ echo $?
+0
+```
+
+```
+$ cargo clippy --workspace --all-targets
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.58s
+$ echo $?
+0
+```
+
+`--all` and `--workspace` because a crate left out of the command is a crate the
+rules do not reach, and `--all-targets` because the tests are most of the source
+in this tree today. Both were run at the commit this paragraph landed on.
+
+**Neither prints a warning and carries on.** `cargo fmt --check` writes the diff
+it would have applied and exits non-zero, which is the formatter's own behaviour.
+The linter's is this repository's: the lint levels are in the `[workspace.lints]`
+table of the root `Cargo.toml`, not in a flag on a command line, so `deny` is what
+the manifest says and every route that compiles this workspace carries it.
+`cargo build` and `cargo test` refuse a warning too, and an editor running
+`cargo check` shows it as an error at the moment it is written rather than at the
+end of a pipeline.
+
+A flag would have held only where the flag was typed, which is the failure this
+avoids: a contributor whose own machine was quiet learning about the rule from a
+red build on work that is already finished.
+
+What is denied, and it is a list this document does not restate because the
+manifest is the authority for it:
+
+```
+$ sed -n '/^\[workspace.lints/,$p' Cargo.toml
+```
+
+Two things about that table are worth reading before changing it. The rustc half
+denies the whole `warnings` group, which is safe only because `rust-toolchain.toml`
+pins an exact release, so the set cannot grow underneath the tree. The clippy half
+takes the default group and then names a short list out of `clippy::pedantic`
+individually: the casts between integers and floats, and exact comparison of
+floats. Those are what this project is for. The rest of `pedantic` is not
+enabled, and most of what it would add here is `#[must_use]` on functions that
+have no caller yet.
+
+**The levels are `deny` rather than `forbid`, so a site with a reason can carry
+an `#[expect]`.** Where they are, and each one says in place why it is there:
+
+```
+$ git grep -c 'clippy::' -- 'crates/**/*.rs'
+crates/einschlag/src/math.rs:1
+crates/einschlag/src/sampling.rs:3
+```
+
+`#[expect]` rather than `#[allow]` on purpose. An `expect` that stops being
+needed is itself a warning, so a suppression outliving the code it was written
+for is refused rather than sitting there.
+
+**What neither command judges is whether the code is right.** A formatter reads
+whitespace and a linter reads patterns. `docs/TESTING.md` is the suite, and the
+two are not substitutes for each other.
+
+**Nothing outside a developer's machine runs either of them at this commit.**
+There is no continuous integration that compiles this workspace, so a branch
+pushed without running them is not stopped by anything. Issue #24 is where the job
+that runs them is written, and until it lands these are commands a person types.
 
 ## What a clean clone needs
 
@@ -181,10 +255,12 @@ commits the lock and adds `--locked` to the routes that build and test.
 **The test command is not here.** `cargo test` and what it prints are
 `docs/TESTING.md`.
 
-**No formatter, no linter, no continuous integration that builds anything.** The
-workflows in `.github/workflows/` at this commit check sign-off, dependencies,
-Unicode and the workflow files themselves. None of them compiles this code, so
-nothing outside a developer's own machine has built it. Issues #22 and #24.
+**No continuous integration that builds anything.** The workflows in
+`.github/workflows/` at this commit check sign-off, dependencies, Unicode and the
+workflow files themselves. None of them compiles this code, so nothing outside a
+developer's own machine has built it, formatted it or linted it. The formatter
+and the linter are in the tree and are two commands a person types; the job that
+would type them for everybody is issue #24.
 
 **No release artefact and no cross-compilation.** Issue #69.
 

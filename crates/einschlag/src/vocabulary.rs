@@ -22,7 +22,8 @@ pub struct Phrase {
     pub source: &'static str,
 }
 
-const PCAST: &str = "PCAST 2016, recommendations to the courts, quoted in docs/survey/challenges.md";
+const PCAST: &str =
+    "PCAST 2016, recommendations to the courts, quoted in docs/survey/challenges.md";
 const NCFS: &str = "National Commission on Forensic Science, quoted in the same PCAST report";
 
 /// Every phrase refused, with its source.
@@ -34,18 +35,54 @@ const NCFS: &str = "National Commission on Forensic Science, quoted in the same 
 /// compiler and has nothing to do with certainty. A check that fires on true
 /// statements is a check somebody switches off.
 pub const REFUSED: &[Phrase] = &[
-    Phrase { text: "zero error rate", source: PCAST },
-    Phrase { text: "negligible error rate", source: PCAST },
-    Phrase { text: "minimal error rate", source: PCAST },
-    Phrase { text: "microscopic error rate", source: PCAST },
-    Phrase { text: "vanishingly small", source: PCAST },
-    Phrase { text: "essentially zero", source: PCAST },
-    Phrase { text: "100 percent certainty", source: PCAST },
-    Phrase { text: "100% certainty", source: PCAST },
-    Phrase { text: "reasonable degree of scientific certainty", source: PCAST },
-    Phrase { text: "to the exclusion of all other sources", source: PCAST },
-    Phrase { text: "practical impossibility", source: PCAST },
-    Phrase { text: "reasonable degree of certainty", source: NCFS },
+    Phrase {
+        text: "zero error rate",
+        source: PCAST,
+    },
+    Phrase {
+        text: "negligible error rate",
+        source: PCAST,
+    },
+    Phrase {
+        text: "minimal error rate",
+        source: PCAST,
+    },
+    Phrase {
+        text: "microscopic error rate",
+        source: PCAST,
+    },
+    Phrase {
+        text: "vanishingly small",
+        source: PCAST,
+    },
+    Phrase {
+        text: "essentially zero",
+        source: PCAST,
+    },
+    Phrase {
+        text: "100 percent certainty",
+        source: PCAST,
+    },
+    Phrase {
+        text: "100% certainty",
+        source: PCAST,
+    },
+    Phrase {
+        text: "reasonable degree of scientific certainty",
+        source: PCAST,
+    },
+    Phrase {
+        text: "to the exclusion of all other sources",
+        source: PCAST,
+    },
+    Phrase {
+        text: "practical impossibility",
+        source: PCAST,
+    },
+    Phrase {
+        text: "reasonable degree of certainty",
+        source: NCFS,
+    },
 ];
 
 /// The first refused phrase in `text`, or `None`.
@@ -55,7 +92,9 @@ pub const REFUSED: &[Phrase] = &[
 /// phrase hides from a naive search in this repository's own prose.
 pub fn first_refused(text: &str) -> Option<&'static Phrase> {
     let normalised = normalise(text);
-    REFUSED.iter().find(|phrase| normalised.contains(phrase.text))
+    REFUSED
+        .iter()
+        .find(|phrase| normalised.contains(phrase.text))
 }
 
 /// Lower case with every run of whitespace collapsed to one space.
@@ -78,7 +117,7 @@ fn normalise(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{first_refused, normalise, REFUSED};
+    use super::{REFUSED, first_refused, normalise};
 
     #[test]
     fn every_phrase_is_stored_in_the_form_the_matcher_compares_against() {
@@ -88,7 +127,10 @@ mod tests {
                 normalise(phrase.text),
                 "the phrase is not lower case and single-spaced, so it can never match"
             );
-            assert!(!phrase.text.is_empty(), "an empty phrase matches everything");
+            assert!(
+                !phrase.text.is_empty(),
+                "an empty phrase matches everything"
+            );
             assert!(
                 !phrase.source.is_empty(),
                 "the phrase {:?} names no source, so adding to this list stops being an argued change",
