@@ -169,10 +169,7 @@ impl Extent {
     #[must_use]
     pub fn reach_of(self, positions: &[Point]) -> Reach {
         Reach {
-            // Temporary: the boundary test narrowed to positions outside,
-            // which is the mistake of reading a region that ends at the
-            // boundary as one that ended because the evidence ended.
-            reaches_boundary: positions.iter().any(|p| !self.holds(*p)),
+            reaches_boundary: positions.iter().any(|p| !self.holds_strictly(*p)),
             empty_within: !positions.iter().any(|p| self.holds(*p)),
         }
     }
@@ -470,9 +467,8 @@ impl Scene {
         duplicate(obstacles.iter().map(Obstacle::id))?;
         duplicate(holes.iter().map(Hole::id))?;
 
-        // Temporary: one character inverted, so the refusal can be watched.
         for hole in &holes {
-            if surfaces.iter().any(|s| s.id() == hole.surface()) {
+            if !surfaces.iter().any(|s| s.id() == hole.surface()) {
                 return Err(Refusal::UnknownSurface {
                     hole: hole.id().to_owned(),
                     surface: hole.surface().to_owned(),
