@@ -1,0 +1,39 @@
+# The material table.
+#
+# What this project has read about how well the ellipse relation estimates an
+# angle of incidence, per material, over a stated range of angles. It is data
+# rather than constants in source so that a reader can check it against
+# docs/survey/ellipse-accuracy.md without opening the code.
+#
+# docs/materials.md states the shape, what each key means, why the table is
+# empty today and what would fill it. crates/einschlag/src/materials.rs reads
+# this file and refuses a row that is missing any key, including the citation.
+#
+# A material with no row here is a material this project has read no error for.
+# The lookup refuses it and there is no default behind the refusal, because a
+# default here would be an invented uncertainty handed to a reader as a measured
+# one.
+
+format_version = 1
+
+# There are no rows.
+#
+# docs/survey/ellipse-accuracy.md states that by the test of a measured error
+# tied to a stated range of angles, no material in it has a usable figure: no
+# full text was obtained for any study when it was written, and every row in it
+# reads "abstract only". docs/survey/full-text-2026-08-09-nishshanka-2021.md
+# then obtained one, and what it carries for the ellipse method is a chart
+# rather than a printed table, together with that study's own conclusion that
+# the method is not viable for the bullet and target combination it tested.
+#
+# Neither of those is a row. docs/materials.md is where that is argued rather
+# than asserted, and issue #76 is where the reading continues.
+#
+# A row would look like this, and the five keys are all required:
+#
+#     [[material]]
+#     name = "gypsum-wallboard-12mm"
+#     valid_from_deg = 40.0
+#     valid_to_deg = 90.0
+#     angle_sd_deg = 2.6
+#     citation = "docs/survey/ellipse-accuracy.md, the row for <study>, <what it printed>"
