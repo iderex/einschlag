@@ -279,14 +279,50 @@ uncommitted changes at build time`, or `working tree state unknown`. A build mad
 where `git` could not answer, from an unpacked source archive for instance,
 reports the commit as `unknown` rather than guessing.
 
-**The third field can be one build behind, and a modified tree can therefore
-report as matching.** The marker is derived when the build script runs, and a
-build script does not run on every build. It reruns when the core crate's `src`,
-`Cargo.toml` or `build.rs` changes, or when `HEAD`, the branch ref or the git
-index changes. An edit anywhere else in the workspace, built with nothing having
-touched the git index in between, leaves the previous marker in place. Reproduced
-on Windows and intermittent, because unrelated git commands rewrite the index and
-hide it. Issue #84 holds the measurement and the mechanism, and quotes the runs.
+**The third field used to be able to sit one build behind, so a modified tree
+could report as matching.** The marker is derived when the build script runs, a
+build script does not run on every build, and emitting any `rerun-if-changed`
+turns off Cargo's rule that a change inside the package reruns the script. The
+list named the core crate and three files in the git directory, so an edit to the
+front end, a document or a workflow, built with nothing having touched the git
+index in between, left the previous marker in place. #84 measured it on Windows
+and it read as intermittent, because unrelated git commands rewrite the index and
+hide it.
+
+**What the script watches now is everything the two fields are about.** Every
+entry at the top of the working tree, minus `target`, which is the build's own
+output, and minus `.git`, which is not part of the working tree; then `HEAD`, the
+branch ref and the index, which move without a byte of the working tree moving.
+Print it, rather than reading this paragraph for it:
+
+```
+$ grep -h 'rerun-if-changed' target/release/build/einschlag-*/output
+```
+
+That file is where Cargo keeps what the script last said, so the command answers
+after any build rather than only after one that reran the script.
+
+A directory in that list is scanned in full, which is Cargo's documented
+behaviour for a `rerun-if-changed` path that is a directory. That is the reason
+this shape was taken and the reason the two alternatives were not: emitting the
+workspace root would have included `target` and made every build rerun the one
+before it, and relying on a path that does not exist to force a rerun every time
+is widely used and is not a documented guarantee. A provenance field on a tool
+whose output may be read in court should not rest on an observed side effect.
+
+**What that still leaves.** Cargo compares modification times, so a file whose
+contents change without its timestamp moving is not seen; restoring an older copy
+over a newer one is the way that happens. A change under `target` is invisible on
+purpose. And the script reports what `git status` said at the moment it ran: an
+edit made while the compiler is still running is not in the answer, which is a
+race no ordering fixes.
+
+**The script no longer writes a path it watches.** `git status` refreshes the
+index as a side effect, the index is in the watch list, so each run of the script
+caused the next build to run it again. It is invoked as `git --no-optional-locks
+status --porcelain`, which is the documented way to ask git not to take that
+lock, and the extra rebuild is gone with it. That second-order effect is most of
+why the original behaviour looked inconsistent rather than simply wrong.
 
 **A real clone used to report `working tree had uncommitted changes at build
 time` on every build**, because `Cargo.lock` was untracked and Cargo wrote it
