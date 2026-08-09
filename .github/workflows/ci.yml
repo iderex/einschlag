@@ -76,6 +76,56 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The suite is required to run with no display available and with no
+      # elevated rights, and until this step existed nothing anywhere asserted
+      # either. The two checks in the suite read the source for the names a
+      # display or an elevation request is made through, which is a floor: a run
+      # under an administrator token on a machine with a session passes both.
+      #
+      # This asserts the conditions of the run instead, and it can only do that
+      # here. Rust has no declaration of what a test requires, and reading the
+      # process's own privilege level from a test needs a foreign function call
+      # into the platform, on a project that carries no unsafe code anywhere. The
+      # shell of an unattended job is where the question is cheap and where the
+      # answer is not a property of somebody's workstation.
+      #
+      # It deliberately does not run on a developer's machine. Somebody with a
+      # good reason to be an administrator, or working at a desk with a display,
+      # is not doing anything wrong; what would be wrong is the suite that is
+      # reported green having been a different suite. Issue #88 argues that at
+      # length and docs/TESTING.md carries the residual.
+      - name: Refuse a run that is privileged or has a display
+        run: |
+          set -euo pipefail
+          failed=0
+          # Fail closed on an id that cannot be read at all, rather than reading
+          # an unanswered question as a pass.
+          if ! uid=$(id -u); then
+            echo "::error::could not read the effective user id, so nothing here can say the run was unprivileged."
+            exit 1
+          fi
+          if [ "$uid" -eq 0 ]; then
+            echo "::error::this run is root (uid $uid). The suite is required to run unprivileged, and a test that passes here would not be the test a restricted machine runs."
+            failed=1
+          else
+            echo "effective user id $uid, which is not root."
+          fi
+          # Named individually rather than by prefix, so the list says what it
+          # covers and a reader can see what it does not. Expanded into the list
+          # rather than read back by indirection, which keeps this to constructs
+          # every shell has.
+          for pair in "DISPLAY=${DISPLAY:-}" "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}" "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-}"; do
+            name=${pair%%=*}
+            value=${pair#*=}
+            if [ -n "$value" ]; then
+              echo "::error::$name is set to '$value'. The suite is required to run with no display available."
+              failed=1
+            fi
+          done
+          if [ "$failed" -eq 0 ]; then
+            echo "no display variable is set."
+          fi
+          exit "$failed"
       - name: cargo test --locked
         run: cargo test --locked
 
