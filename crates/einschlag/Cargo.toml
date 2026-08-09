@@ -15,6 +15,10 @@ publish.workspace = true
 # docs/DEPENDENCIES.md carries the whole argument.
 libm = "=0.2.16"
 
+# Temporary. A dependency added without the lock being updated, so that the
+# refusal can be watched. Reverted before this branch merges.
+libc = "0.2"
+
 # Every warning is refused rather than printed, and the levels are in the
 # workspace manifest so that all three crates carry the same ones.
 [lints]
