@@ -1035,3 +1035,9 @@ citation = "a fixture, and not a reading of any publication"
         );
     }
 }
+
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, into: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        into.write_str(&self.message())
+    }
+}
