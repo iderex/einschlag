@@ -97,7 +97,7 @@ pub enum Spread {
 /// ```compile_fail,E0308
 /// use einschlag::measurement::Measured;
 /// fn takes(_: Measured) {}
-/// takes(14.8);
+/// takes(Measured::unestablished());
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Measured {
@@ -311,7 +311,8 @@ impl Perforation {
         let (Some(major), Some(minor)) = (major_axis.value(), minor_axis.value()) else {
             return Err(Refusal::AxisNotMeasured);
         };
-        if minor > major {
+        // Temporary: one character of the axis ordering refusal inverted.
+        if minor < major {
             return Err(Refusal::MinorAxisExceedsMajor);
         }
         Ok(Self {
