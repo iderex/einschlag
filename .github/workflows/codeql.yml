@@ -1,0 +1,63 @@
+# Code scanning. The analysis appropriate to this project's language, on every
+# pull request and every push to the default branch, with its findings in the
+# security tab rather than only in a job log.
+#
+# docs/QUALITY-PARITY.md places code scanning in the adapted column against the
+# parity repository: that one analyses C#, this one analyses what
+# docs/decisions/0002-language-and-toolchain.md chose, and the extended query set
+# is taken where the platform offers a choice. This file is where that choice is
+# configured; the document is where it is argued.
+#
+# This is not the four check names ci.yml fixes. It reports under its own name
+# and gates nothing, like every other check on this repository.
+name: Code scanning
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+# Nothing here is granted at the top; the one job below asks for what it needs
+# and nothing else.
+permissions: {}
+
+# Cancel a superseded run on the same ref. The analysis is a read of a commit,
+# so a cancelled one leaves nothing behind.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write # write the findings into the security tab
+      contents: read # read the source to analyse it
+      actions: read # read the workflow run this analysis belongs to
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          languages: rust
+          # security-extended rather than the default set, which is the choice
+          # docs/QUALITY-PARITY.md already records. It costs analysis time and
+          # a longer findings list, and a findings list nobody triages is a list
+          # that trains people to ignore the tab, so the triage is part of the
+          # issue that landed this rather than something left to later.
+          queries: security-extended
+          # The extractor reads the source rather than watching a build, so
+          # nothing here compiles the workspace a second time.
+          build-mode: none
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          category: "/language:rust"
