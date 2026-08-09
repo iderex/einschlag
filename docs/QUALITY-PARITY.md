@@ -111,7 +111,7 @@ are recorded here rather than given rows.
 | --- | --- | --- | --- |
 | `build.yml`, Build | yes, as `build` | taken | A build check under a fixed name is the first thing this repository owes, and it is what continuous integration in milestone 3 names `build`. |
 | `dotnet.yml`, .NET | no | no counterpart | Language-specific to C#; whatever replaces it is whichever toolchain decision 0002 names, and it is not a second control. |
-| `codeql.yml`, CodeQL | yes, as `CodeQL` and `Analyze (csharp)` | adapted | Code scanning is taken, with the analysis appropriate to the chosen language rather than the C# one, and the extended query set where the platform offers a choice. |
+| `codeql.yml`, CodeQL | yes, as `CodeQL` and `Analyze (csharp)` | adapted, and running | Taken in `.github/workflows/codeql.yml`, analysing Rust rather than C#, with `security-extended`. The section below carries what it found. |
 | `opengrep.yml`, Repo Invariant Lint (Opengrep) | yes, as `Enforce greppable invariants` | adapted | Pattern-based static analysis over the tree is taken, and the invariants it enforces here are this project's own rather than that project's. |
 | `dco.yml`, DCO | yes, as `DCO sign-off` | already present | Running here already, in `.github/workflows/dco.yml`, and not yet required before a merge. |
 | `dependency-review.yml`, Dependency review | yes, as `dependency-review` | already present | Running here already and not required. |
@@ -257,10 +257,12 @@ described:
 
 ```
 $ grep -rhoE 'uses: [^[:space:]]+' .github/workflows/ | sort | uniq -c
-      5 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+     11 uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       1 uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
       1 uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       1 uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      1 uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
+      1 uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
       2 uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
       1 uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc
 ```
@@ -289,6 +291,8 @@ declarations is read-only or empty:
 
 ```
 $ for f in .github/workflows/*.yml; do printf '%-40s ' "$f"; awk '/^permissions:/{f=1; print; next} f&&/^[[:space:]]+/{print "  " $0; next} f{exit}' "$f" | tr '\n' ' '; echo; done
+.github/workflows/ci.yml                 permissions:     contents: read
+.github/workflows/codeql.yml             permissions: {}
 .github/workflows/dco.yml                permissions:     contents: read
 .github/workflows/dependency-review.yml  permissions:     contents: read
 .github/workflows/scorecard.yml          permissions:     contents: read
@@ -296,10 +300,11 @@ $ for f in .github/workflows/*.yml; do printf '%-40s ' "$f"; awk '/^permissions:
 .github/workflows/zizmor.yml             permissions: {}
 ```
 
-The two files that need a write scope grant it on the job rather than on the
+The three files that need a write scope grant it on the job rather than on the
 file: `scorecard.yml` takes `security-events: write` and `id-token: write` in its
-job, and `zizmor.yml` takes `security-events: write` in its job, each with the
-reason written beside it.
+job, `zizmor.yml` takes `security-events: write` in its job, and `codeql.yml`
+takes `security-events: write`, `contents: read` and `actions: read` in its job,
+each with the reason written beside it.
 
 The workflow security audit runs over the repository rather than over a named
 file, at low severity and above, and it fails closed if any workflow fails to
@@ -308,6 +313,39 @@ parse. It passed on the commit the score above was computed at:
 ```
 $ gh run list --repo iderex/einschlag --workflow zizmor.yml --branch main --limit 1 --json databaseId,conclusion,headSha --jq '.[] | "\(.databaseId) \(.conclusion) \(.headSha)"'
 31275172113 success e38fc4294a0b60eb4d4700ad994c6f7f8cd47b74
+```
+
+### What the code scanning analysis found
+
+The query set is `security-extended` rather than the default, which the table
+above records as the choice and `.github/workflows/codeql.yml` configures. It
+costs analysis time and a longer findings list, and a findings list nobody
+triages is a list that trains people to ignore the tab, so the count belongs
+here rather than in the tab alone.
+
+On the first run of it, against the branch that landed the workflow:
+
+```
+$ gh api "repos/iderex/einschlag/code-scanning/analyses?ref=refs/pull/108/merge" --jq '.[0] | {tool: .tool.name, results: .results_count, rules: .rules_count, category}'
+{"category":"/language:rust","results":0,"rules":27,"tool":"CodeQL"}
+$ gh api "repos/iderex/einschlag/code-scanning/alerts?ref=refs/pull/108/merge&per_page=100" --jq 'length'
+0
+```
+
+**Nothing to triage, and that is a weaker statement than it looks.** Twenty-seven
+rules ran over about a thousand lines of Rust that parse nothing, open no socket
+and take no input from outside this repository. An analysis that finds nothing on
+a program with no attack surface has not been shown to find anything; what it has
+been shown to do is run, report, and put its result where a person can read it.
+The run that will say something is the one after #33 lands a parser.
+
+The extractor version is not pinned by this repository. It comes with the
+platform's CodeQL bundle, which moves, so the rule count above is a fact about
+the day it ran rather than a property of the tree:
+
+```
+$ gh run view --repo iderex/einschlag --job 93203546914 --log | grep -o 'CodeQL/[0-9.]*'
+CodeQL/2.26.2
 ```
 
 ### The dependency licences against the licence this project took
