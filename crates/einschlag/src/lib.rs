@@ -59,18 +59,6 @@ pub fn version_line() -> String {
 
 #[cfg(test)]
 mod tests {
-    /// Temporary. An assertion that is false, so the `test` check can be watched
-    /// going red on its own while `build`, `fmt` and `lint` stay green. This
-    /// compiles cleanly and is formatted, so nothing but the run itself fails.
-    #[test]
-    fn temporarily_failing() {
-        assert_eq!(
-            1 + 1,
-            3,
-            "a temporary assertion, here to be watched failing"
-        );
-    }
-
     use super::{BUILD_COMMIT, BUILD_TREE_STATE, TOOL_NAME, VERSION, version_line};
 
     /// The name is written into a usage banner and typed at a shell. A name
