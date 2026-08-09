@@ -71,12 +71,18 @@ entry 1 of #1 decided and what `LICENSE` now carries. The obligation it brings i
 that the notice and the permission text travel with any distribution, which is a
 thing a release has to carry rather than a thing this file settles.
 
-**The version requirement is exact.** `= 0.2.16` rather than a range, because
-`Cargo.lock` is untracked until #26 and a fresh clone would otherwise resolve
-whatever is newest. A later release of this crate may return a different value in
-the last place, which is the whole thing the record pins. Once the lock is
-tracked, the exact requirement can be relaxed to a range and the lock can hold
-the version instead.
+**The version requirement is exact.** `= 0.2.16` rather than a range. A later
+release of this crate may return a different value in the last place, which is
+the whole thing `docs/decisions/0013-platform-math-out-of-the-numeric-core.md`
+pins, so a range would leave the promise resting on whatever the resolver felt
+like.
+
+`Cargo.lock` is tracked now, and the lock alone would hold the version for
+anybody building from this repository. It would not hold it for anybody depending
+on this crate as a library, because a lock file is ignored for a dependency, and
+the record's promise is about the arithmetic rather than about who is building.
+Relaxing the requirement is therefore a decision about that record and not a
+tidying-up that follows from the lock, and it has not been taken.
 
 **What it brings with it.** Nothing. It is the only package in the graph besides
 this workspace's own two. The absolute path the first line printed is shortened
@@ -109,10 +115,11 @@ undecided, and #43 is the issue that would take one for the output artefact.
 
 ## What the check does not do
 
-**It reads the manifests, not the resolved graph.** `Cargo.lock` is untracked
-until #26, and a resolver that pulled a different version of a named dependency
-would not be visible here. The check answers which crates this project asks for,
-not which ones it got.
+**It reads the manifests, not the resolved graph.** `Cargo.lock` is tracked and
+`--locked` is on the build, test and lint jobs, so a resolver that pulled a
+different version can no longer do it quietly; what this check reads is still the
+manifests. It answers which crates this project asks for, not which ones it got,
+and a package arriving only through the lock is invisible to it.
 
 **It counts nothing transitive.** See the ceiling section above.
 

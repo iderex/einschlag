@@ -3,15 +3,23 @@
 ## The one command
 
 ```
-cargo build --release
+cargo build --release --locked
 ```
 
-Run it from the root of a clone. It builds both crates and leaves a binary at
-`target/release/einschlag` (`target\release\einschlag.exe` on Windows).
+Run it from the root of a clone. It builds every crate in the workspace and
+leaves a binary at `target/release/einschlag`
+(`target\release\einschlag.exe` on Windows).
 
-There is no configure step, no code generation and no network access beyond what
-Cargo needs for dependencies, of which there are none outside this workspace
-today.
+`--locked` is part of the command rather than a flag for the build server.
+`Cargo.lock` is tracked, and `--locked` refuses to build where it would have to
+change, so a dependency added without the lock being committed stops here instead
+of resolving quietly into a graph nobody reviewed. The one time to leave it off
+is the moment a dependency is being added on purpose: run the command without it
+once, commit the lock the resolver wrote, and put it back.
+
+There is no configure step and no code generation. The only network access is
+Cargo fetching the packages the lock names, which today is one package outside
+this workspace, `libm`. `docs/DEPENDENCIES.md` says what it is for.
 
 There is one build script, `crates/einschlag/build.rs`. It runs `git` twice to
 derive the commit the build was made from, writes two environment values for the
@@ -94,7 +102,7 @@ $ echo $?
 ```
 
 ```
-$ cargo clippy --workspace --all-targets
+$ cargo clippy --workspace --all-targets --locked
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.58s
 $ echo $?
 0
@@ -280,16 +288,20 @@ touched the git index in between, leaves the previous marker in place. Reproduce
 on Windows and intermittent, because unrelated git commands rewrite the index and
 hide it. Issue #84 holds the measurement and the mechanism, and quotes the runs.
 
-**Until #26 lands the lock file, a real clone reports `working tree had
-uncommitted changes at build time` on every build**, because `Cargo.lock` is
-untracked and Cargo writes it before the build script runs. The clean reading
-quoted above came from a scratch copy with `Cargo.lock` in `.git/info/exclude`,
-which is a local exclusion and not something in the tree.
+**A real clone used to report `working tree had uncommitted changes at build
+time` on every build**, because `Cargo.lock` was untracked and Cargo wrote it
+before the build script ran. The lock is tracked now, so an unmodified clone
+reaches a clean tree and the reading above is one an ordinary build produces
+rather than one a local exclusion had to be arranged for.
 
 ## The layout
 
 `crates/einschlag` is the library: the geometry, the sampling and the uncertainty
 propagation, everything the tool computes. It is empty today.
+
+`crates/einschlag-hardware-harness` holds the runs that need equipment. It is a
+workspace member, so it is compiled by every build here and never executed by
+one; `docs/TESTING.md` is where that arrangement is argued.
 
 `crates/einschlag-cli` is the command line front end. It depends on the library
 as an ordinary path dependency, so the compiler refuses it access to anything the
@@ -304,12 +316,21 @@ holds nothing yet.
 
 ## What is not here
 
-**No lock file.** `Cargo.lock` is not tracked, so a resolver that picked a newer
-dependency would not be refused. There are no dependencies outside the workspace
-today, which bounds what that can currently do rather than removing it. Issue #26
-commits the lock and adds `--locked` to the routes that build and test.
+**Nothing refuses a lock that was updated on purpose and badly.** `--locked`
+refuses a build where the lock would have to change. It says nothing about a
+commit that changes the lock and the manifest together, which is exactly what
+adding a dependency looks like, so a version bump nobody reviewed passes every
+route here. What stands against that is `docs/DEPENDENCIES.md`, the entry it
+requires per direct dependency, and the reader of the diff.
 
-**The test command is not here.** `cargo test` and what it prints are
+**Nothing verifies what a package contains.** The lock records a checksum, and
+Cargo refuses a package whose bytes do not match it, so a registry serving
+different content for a version that was already resolved is caught. A first
+resolution of a new version is trusted at the moment it happens.
+`.github/workflows/dependency-review.yml` refuses a newly added dependency with a
+known vulnerability, which is a different question again.
+
+**The test command is not here.** `cargo test --locked` and what it prints are
 `docs/TESTING.md`.
 
 **Nothing that makes a check run a precondition of a merge.** The four check

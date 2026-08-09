@@ -3,7 +3,7 @@
 ## The one command
 
 ```
-cargo test
+cargo test --locked
 ```
 
 Run it from the root of a clone. It builds both crates, builds the binary the

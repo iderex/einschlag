@@ -1,8 +1,9 @@
 # Build output. Nothing under here is an input to anything.
 /target
 
-# Cargo.lock is deliberately absent from this file. It is not build output, it
-# belongs in the tree, and committing it together with the route that refuses
-# silent resolver drift is issue #26. Until that lands it shows up as untracked
-# after a build, which is the visible form of the gap rather than a nuisance to
-# be hidden here.
+# Cargo.lock is deliberately absent from this file, and now it is tracked as
+# well. It is not build output: it is the record of which versions a build
+# actually resolved, and a reconstruction has to be reproducible from the same
+# input years later. Ignoring it would leave every clone free to resolve
+# something else and call the result the same program. What refuses that is
+# --locked on the build, test and lint jobs in .github/workflows/ci.yml.
