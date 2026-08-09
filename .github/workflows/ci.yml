@@ -94,7 +94,12 @@ jobs:
       # is not doing anything wrong; what would be wrong is the suite that is
       # reported green having been a different suite. Issue #88 argues that at
       # length and docs/TESTING.md carries the residual.
+      # Temporary. Runs the step as root with a display variable set, so both
+      # arms of it can be watched refusing. Reverted before this branch merges.
       - name: Refuse a run that is privileged or has a display
+        shell: sudo -E bash -e {0}
+        env:
+          DISPLAY: ":99"
         run: |
           set -euo pipefail
           failed=0
