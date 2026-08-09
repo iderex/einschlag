@@ -150,10 +150,67 @@ for is refused rather than sitting there.
 whitespace and a linter reads patterns. `docs/TESTING.md` is the suite, and the
 two are not substitutes for each other.
 
-**Nothing outside a developer's machine runs either of them at this commit.**
-There is no continuous integration that compiles this workspace, so a branch
-pushed without running them is not stopped by anything. Issue #24 is where the job
-that runs them is written, and until it lands these are commands a person types.
+Both of them run on a push and on a pull request as well, under the names the
+next section is about.
+
+## What runs on a push, and under which names
+
+`.github/workflows/ci.yml` builds this workspace, runs the suite, and runs the
+two commands above, on every pull request and on every push to `main`. It is the
+first workflow in this repository that compiles the code; the five beside it read
+the tree, the history and each other.
+
+**It produces four check runs, and their names are these four words:**
+
+```
+build
+test
+fmt
+lint
+```
+
+**Those names are matched literally elsewhere and are not free to change.** A
+branch protection rule requires a check by name, so a rename that nobody notices
+removes a requirement without removing anything a reader would see: the rule goes
+on naming a check that no longer exists, the pull request goes on being
+mergeable, and nothing says so. Renaming one is a deliberate act that has to move
+whatever names it. This paragraph is the only place in this document that writes
+the four out, and the workflow file carries the same sentence at the top.
+
+**Nothing requires them today.** The ruleset on this repository requires no
+status check at all, so a pull request whose `build` is red can still be merged.
+`CONTRIBUTING.md` quotes the ruleset with the command that produced it, and
+`docs/QUALITY-PARITY.md` compares it against a repository that does require its
+checks. Requiring them is entry 3 of issue #1 and is a repository setting rather
+than a change anybody can make in a pull request.
+
+**The workflow types what this document and `docs/TESTING.md` type.** Not a
+variant, not a superset:
+
+```
+$ grep -n 'run: cargo' .github/workflows/ci.yml
+```
+
+Two procedures that drift apart is how a green build stops meaning anything. The
+lint job in particular carries no `-D warnings` on its command line, because the
+levels are in the manifest and a flag there would be a second place to set them.
+
+**No job installs a toolchain.** `rust-toolchain.toml` is the one tracked file
+that carries the version, and the `rustup` already on the runner reads it and
+fetches the pinned compiler with the components named beside it. An action taking
+a version as an input would be a second place to set it, which
+`crates/einschlag/tests/toolchain_pin.rs` refuses by name.
+
+**No cache.** Each job compiles from nothing, which costs minutes on a workspace
+this size and removes a class of failure where a job passes on something a clone
+would not produce. That trade is worth re-running when the build gets long enough
+to notice, and it has not been measured here.
+
+**What runs there is Linux, and nothing else.** `runs-on: ubuntu-latest` on all
+four jobs, so a break that only appears on Windows or macOS is not caught by any
+of this. The determinism promise in
+`docs/decisions/0009-determinism.md` is the reason that matters, and no issue
+holds a second platform today.
 
 ## What a clean clone needs
 
@@ -255,12 +312,10 @@ commits the lock and adds `--locked` to the routes that build and test.
 **The test command is not here.** `cargo test` and what it prints are
 `docs/TESTING.md`.
 
-**No continuous integration that builds anything.** The workflows in
-`.github/workflows/` at this commit check sign-off, dependencies, Unicode and the
-workflow files themselves. None of them compiles this code, so nothing outside a
-developer's own machine has built it, formatted it or linted it. The formatter
-and the linter are in the tree and are two commands a person types; the job that
-would type them for everybody is issue #24.
+**Nothing that makes a check run a precondition of a merge.** The four check
+runs exist and report; the ruleset requires none of them, so a red pull request
+is mergeable. That is a repository setting and entry 3 of issue #1, and the
+section above is where it is set out.
 
 **No release artefact and no cross-compilation.** Issue #69.
 

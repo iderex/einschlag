@@ -142,8 +142,10 @@ meaning of what is in it. A run written into the library's own unit tests rather
 than into a binary would be executed by the default suite and nothing here would
 refuse it, because nothing can tell a unit test of the recording types from one
 that expects a bench. They also say nothing about a continuous integration job
-invoking the harness deliberately: no such job exists yet, #24 is where the first
-one is written, and what a job runs is decided in the job.
+invoking the harness deliberately, and what a job runs is decided in the job.
+`.github/workflows/ci.yml` runs `cargo test` and nothing else, so the harness is
+compiled there and not executed, exactly as it is on a developer's machine.
+Nothing refuses a later job that names a run in it.
 
 **A figure from a run nobody can repeat is still evidence, and it is weaker
 evidence.** The date and the equipment are what keep it readable as the weaker
@@ -194,12 +196,17 @@ dependency budget in `DEPENDENCIES.md` is the other half: a windowing crate
 cannot arrive without an entry saying what it is for, which is the point at which
 a person sees it.
 
-**Nothing outside a developer's machine runs this suite at all**, so the claim
-that it is headless has not been tested by running it somewhere headless. Issue
-#24 creates the job, and #25 asks that the job be configured to run the tests as
-an unprivileged user with no display server, visible in the configuration rather
-than inherited from whatever the runner image happens to be. Until that lands,
-the rule above is held by the two checks and by whoever reads a change.
+**The suite now runs somewhere with no session and no display, and nothing in
+the configuration says so.** `.github/workflows/ci.yml` runs `cargo test` on a
+Linux runner on every pull request and every push to `main`, which is the first
+time this suite has run anywhere but a developer's machine. What that gives is
+evidence that it passes there. What it does not give is the assertion: the
+absence of a display and the identity the run has are properties of whatever
+image the runner happens to be, inherited rather than declared, and a change to
+that image would move them without moving anything in this repository. #25's
+second Done-when asks for the declaration and #88 holds the shape of it. Until
+one lands, the rule above is held by the two checks, by the runner's defaults,
+and by whoever reads a change.
 
 ## What a test is for
 
@@ -213,8 +220,15 @@ body here, which `CONTRIBUTING.md` states with the command that produced it.
 
 ## What this document does not yet say
 
-**Nothing outside a developer's machine runs this suite.** The workflows in
-`.github/workflows/` check sign-off, dependencies, Unicode and the workflow files;
-none of them compiles this code or runs a test. Issue #24.
+**Nothing makes the suite a precondition of a merge.** `.github/workflows/ci.yml`
+runs it and reports under the check name `test`, and the ruleset on this
+repository requires no status check, so a pull request whose `test` is red can be
+merged. `CONTRIBUTING.md` quotes the ruleset with the command that produced it,
+and `docs/BUILD.md` is where the four check names and what they are matched
+against are written.
+
+**The suite runs on Linux there and nowhere else.** All four jobs are
+`ubuntu-latest`, so a break that only appears on Windows or macOS is caught by
+nobody. No issue holds a second platform today.
 
 **No coverage figure is produced and no threshold exists.** Issues #28 and #55.

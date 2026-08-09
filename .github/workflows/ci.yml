@@ -1,0 +1,102 @@
+# The first workflow in this repository that compiles the code.
+#
+# The five guards beside it read the tree, the history and each other; none of
+# them builds or tests anything, so until this file landed nothing outside a
+# developer's own machine had ever built this workspace.
+#
+# **The four job names below are matched literally elsewhere.** They are what a
+# branch protection rule names when it requires a check, and a rename here that
+# nobody notices removes a requirement without removing anything visible.
+# docs/BUILD.md carries the same four names and says the same thing. Entry 3 of
+# issue #1 is where requiring them is decided; today the ruleset on this
+# repository requires no status check at all, which CONTRIBUTING.md quotes with
+# the command that produced it.
+#
+# **Every command below is one docs/BUILD.md or docs/TESTING.md gives a person to
+# type.** Not a variant of it, not a superset. Two procedures that drift apart is
+# how a green build stops meaning anything: the job passes, the person's run
+# fails, and neither of them is wrong about what it ran.
+name: ci
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+# Read-only, and no job below asks for more. Nothing here writes to the
+# repository, uploads an artefact, or publishes anything.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. Every job here is a read-only build of
+# a commit, so a cancelled run leaves nothing behind.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A panic inside a test prints where it came from. Without this a failing
+  # assertion in the suite arrives as a line number and nothing else, and the
+  # rerun that would have shown the rest costs another full build.
+  RUST_BACKTRACE: "1"
+
+jobs:
+  # No job installs a toolchain, and that is deliberate. rust-toolchain.toml is
+  # the one tracked file that carries the version, and the rustup already on the
+  # runner reads it and fetches the pinned compiler with the components named
+  # beside it. An action that took a version as an input would be a second place
+  # to set it, which crates/einschlag/tests/toolchain_pin.rs refuses by name.
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # build.rs derives the commit from git, so the checkout has to be a git
+          # repository. No step pushes, so the token is not persisted.
+          persist-credentials: false
+      - name: cargo build --release
+        run: cargo build --release
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: cargo test
+        run: cargo test
+
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: cargo fmt --all -- --check
+        run: cargo fmt --all -- --check
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # There is no -D warnings on this line and there is not meant to be one.
+      # The lint levels are in the [workspace.lints] table of the root manifest,
+      # so this command carries the same rules a person's does. A flag here would
+      # hold where the flag was typed and nowhere else.
+      - name: cargo clippy --workspace --all-targets
+        run: cargo clippy --workspace --all-targets
