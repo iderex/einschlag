@@ -57,6 +57,13 @@ pub fn version_line() -> String {
     format!("{TOOL_NAME} {VERSION}\ncommit {BUILD_COMMIT}, {tree}\n")
 }
 
+// Temporary. One formatting deviation and one denied warning, so that all four
+// check runs can be watched going red. Reverted before this branch merges.
+pub fn temporarily_wrong() -> u32 {
+    let    never_read   =    1;
+    2
+}
+
 #[cfg(test)]
 mod tests {
     use super::{BUILD_COMMIT, BUILD_TREE_STATE, TOOL_NAME, VERSION, version_line};
