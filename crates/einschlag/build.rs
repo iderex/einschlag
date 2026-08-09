@@ -11,6 +11,7 @@
 //! parser for, and the surface is two commands whose output is checked before it
 //! is believed.
 
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -28,7 +29,11 @@ fn main() {
         .unwrap_or_else(|| UNKNOWN.to_owned());
 
     let tree_state = match root.as_deref() {
-        Some(r) => match git(r, &["status", "--porcelain"]) {
+        // `--no-optional-locks` so that reading the state does not write the
+        // index. Without it this script rewrites a path it watches, so a build
+        // causes the next build to rerun the script, and the behaviour reads as
+        // intermittent rather than as this line missing.
+        Some(r) => match git(r, &["--no-optional-locks", "status", "--porcelain"]) {
             Some(out) if out.is_empty() => "clean",
             Some(_) => "modified",
             None => UNKNOWN,
@@ -121,24 +126,63 @@ fn is_object_name(s: &str) -> bool {
 
 /// What has to change for the two values above to be derived again.
 ///
-/// This is not complete and the incompleteness is in `docs/BUILD.md` and in
-/// issue #84: a change elsewhere in the workspace that never reaches the git
-/// index leaves the previous marker in place until this crate is rebuilt.
+/// **Everything the two values are about.** The commit is about `HEAD` and the
+/// ref it points at; the tree state is about every path `git status` reads,
+/// which is the whole working tree. So the list is every entry at the top of the
+/// working tree except the two that are not part of it, plus the three files
+/// inside the git directory that move when a commit or a checkout does.
+///
+/// Emitting any `rerun-if-changed` turns off Cargo's default rule that a change
+/// inside the package reruns the script, so a list that named only this package
+/// left every other tracked file unwatched. An edit to the front end, a document
+/// or a workflow, built with nothing having touched the git index in between,
+/// then produced an artefact claiming its tree matched a commit it did not
+/// match. Issue #84 measured that and this is the repair.
+///
+/// A directory in the list is scanned in full, which is Cargo's documented
+/// behaviour for a `rerun-if-changed` path that is a directory rather than
+/// something observed to work. `docs/BUILD.md` carries what that leaves.
 fn rerun_triggers(root: Option<&Path>) -> Vec<PathBuf> {
     let here = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap_or_default());
-    let mut paths = vec![
+    let package_inputs = vec![
         here.join("src"),
         here.join("Cargo.toml"),
         here.join("build.rs"),
     ];
 
-    let Some(root) = root else { return paths };
+    // Not a repository, so there is no tree state to be wrong about and the
+    // commit is already `unknown`. Watching this package is what is left.
+    let Some(root) = root else {
+        return package_inputs;
+    };
+
+    let Ok(entries) = fs::read_dir(root) else {
+        return package_inputs;
+    };
+    let mut paths = Vec::new();
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        // `target` is this script's own output and watching it would make every
+        // build rerun the one before it. `.git` is not part of the working tree
+        // and changes on almost every git command, and the three files inside it
+        // that matter are named below.
+        if name == "target" || name == ".git" {
+            continue;
+        }
+        paths.push(entry.path());
+    }
+    if paths.is_empty() {
+        return package_inputs;
+    }
+
     let Some(git_dir) = git(root, &["rev-parse", "--absolute-git-dir"]).map(PathBuf::from) else {
         return paths;
     };
 
-    // HEAD moves on a checkout, the ref file moves on a commit, and the index
-    // is touched by add, commit and status.
+    // HEAD moves on a checkout and the ref file moves on a commit, neither of
+    // which changes a byte in the working tree while both change the answer. The
+    // index is here for the same reason: staging a file changes what `git
+    // status` reports without changing the file.
     paths.push(git_dir.join("HEAD"));
     paths.push(git_dir.join("index"));
     if let Some(reference) = git(root, &["symbolic-ref", "--quiet", "HEAD"]) {
