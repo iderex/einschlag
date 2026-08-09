@@ -132,10 +132,12 @@ impl Refusal {
     /// [`Refusal::message_from`] is for a caller that knows where the text came
     /// from.
     ///
-    /// A plain method rather than the standard formatting trait. The check in
-    /// `crates/einschlag/tests/headless_and_unprivileged.rs` refuses the trait's
-    /// name as a marker for a window system, which issue #111 is about; until
-    /// that is separated, a type here that wants a readable form writes one.
+    /// A plain method rather than the standard formatting trait, and a choice
+    /// rather than a workaround since #111: the check in
+    /// `crates/einschlag/tests/headless_and_unprivileged.rs` reads the form
+    /// now rather than the bare name. It stays a method because the trait is
+    /// what `to_string` and every formatting macro reach, and this text is a
+    /// message about one file rather than the rendering of the type.
     #[must_use]
     pub fn message(&self) -> String {
         match self.line {
