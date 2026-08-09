@@ -130,6 +130,12 @@ jobs:
             echo "no display variable is set."
           fi
           exit "$failed"
+      # Temporary, beside the capability it measures. The whole suite stops at
+      # the first failing binary, so the artefact check would never run on this
+      # platform without a step that names it.
+      - name: Temporary, the artefact check on its own
+        continue-on-error: true
+        run: cargo test --locked -p einschlag-cli --test nothing_goes_out_of_the_artefact
       - name: cargo test --locked
         run: cargo test --locked
 
