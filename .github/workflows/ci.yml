@@ -41,6 +41,12 @@ env:
   # rerun that would have shown the rest costs another full build.
   RUST_BACKTRACE: "1"
 
+# --locked on every job that resolves dependencies, which is all of them except
+# fmt. It refuses to build where Cargo.lock would have to change, so a
+# dependency added without the lock being committed reddens the build instead
+# of resolving quietly into a graph nobody reviewed. A reconstruction has to be
+# reproducible from the same input years later, and a build that resolved
+# something else is a different program.
 jobs:
   # No job installs a toolchain, and that is deliberate. rust-toolchain.toml is
   # the one tracked file that carries the version, and the rustup already on the
@@ -58,8 +64,8 @@ jobs:
           # build.rs derives the commit from git, so the checkout has to be a git
           # repository. No step pushes, so the token is not persisted.
           persist-credentials: false
-      - name: cargo build --release
-        run: cargo build --release
+      - name: cargo build --release --locked
+        run: cargo build --release --locked
 
   test:
     name: test
@@ -70,8 +76,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: cargo test
-        run: cargo test
+      - name: cargo test --locked
+        run: cargo test --locked
 
   fmt:
     name: fmt
@@ -98,5 +104,5 @@ jobs:
       # The lint levels are in the [workspace.lints] table of the root manifest,
       # so this command carries the same rules a person's does. A flag here would
       # hold where the flag was typed and nowhere else.
-      - name: cargo clippy --workspace --all-targets
-        run: cargo clippy --workspace --all-targets
+      - name: cargo clippy --workspace --all-targets --locked
+        run: cargo clippy --workspace --all-targets --locked
