@@ -57,6 +57,16 @@ pub fn version_line() -> String {
     format!("{TOOL_NAME} {VERSION}\ncommit {BUILD_COMMIT}, {tree}\n")
 }
 
+// Temporary. Five violations, one of each kind the two commands are supposed to
+// refuse, so that each can be watched refusing one. Reverted in the next commit.
+pub fn one_of_each_kind(count: usize, other: f64) -> f64 {
+    let never_read = 1;
+    let    scaled   =    count as f64;
+    if scaled == other { return 0.0; }
+    if (scaled > 0.0) == true { return 1.0; }
+    scaled
+}
+
 #[cfg(test)]
 mod tests {
     use super::{BUILD_COMMIT, BUILD_TREE_STATE, TOOL_NAME, VERSION, version_line};
