@@ -176,12 +176,13 @@ impl MeasuredOn {
 
     /// The day as it was written, `YYYY-MM-DD`.
     ///
-    /// A method rather than the standard formatting trait. Implementing that
-    /// trait puts its name in the source, and
-    /// `crates/einschlag/tests/headless_and_unprivileged.rs` refuses that name
-    /// as a route to a window system. Nothing in this workspace implements it,
-    /// so this file follows the tree rather than being the first to argue with
-    /// the check.
+    /// A method rather than the standard formatting trait, and now a choice
+    /// rather than a workaround. Until #111 the check in
+    /// `crates/einschlag/tests/headless_and_unprivileged.rs` refused that
+    /// trait's name as a route to a window system; it reads the form now and
+    /// this could take the trait. It keeps the method, because the trait is
+    /// what `to_string` and every formatting macro reach, and this is one field
+    /// of a record read back by a report rather than the rendering of the type.
     pub fn text(&self) -> &str {
         &self.text
     }

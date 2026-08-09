@@ -430,8 +430,13 @@ pub enum Refusal {
 impl Refusal {
     /// What to put in front of the person who ran this.
     ///
-    /// A method rather than the standard formatting trait, whose name is on the
-    /// refused list in `crates/einschlag/tests/headless_and_unprivileged.rs`.
+    /// A method rather than the standard formatting trait, and now a choice
+    /// rather than a workaround: until #111 that trait's name was refused as a
+    /// route to a window system by
+    /// `crates/einschlag/tests/headless_and_unprivileged.rs`, which reads the
+    /// form now. It stays a method because the trait is what `to_string` and
+    /// every formatting macro reach, and this text is a message for the person
+    /// who ran the tool rather than the rendering of the type.
     pub fn message(self) -> String {
         match self {
             Self::NoSamples => {

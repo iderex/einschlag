@@ -177,6 +177,18 @@ is made through. It skips documentation, because a document naming a display
 variable is describing it rather than requiring it, and refusing that would stop
 this page stating its own rule.
 
+**One name is read as a form rather than as a bare token, and it is the only
+one.** `display` is also how the standard library's formatting trait lowercases,
+so until #111 every type in this workspace that wanted a readable form had to
+write a plain method instead, and two of them did. The check now lets that name
+past where `fmt::` stands in front of it, which separates
+`impl std::fmt::Display for X` from a reach into a window system. What that costs
+is that the trait has to be written out in full: a bare `Display` after a `use`
+is still refused, because a bare `Display` and a window-system name are the same
+token and no reading of the source tells them apart. An ordinary
+`path.display()` was never refused, because a `.` is part of a token here rather
+than a separator.
+
 `crates/einschlag-cli/tests/cli.rs` starts the built artefact with an empty
 environment and requires it to produce the same output. Nothing it does can
 depend on a session, a display variable or anything else a restricted machine
