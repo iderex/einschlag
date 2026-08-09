@@ -7,12 +7,13 @@
 //! assume it can.
 //!
 //! What fills it is decided in `docs/decisions/` and carried by milestones 4
-//! and 5. `measurement` is the first of those: the hole record, and the measured
-//! quantity it is built out of.
+//! and 5. `measurement` is the hole record and the measured quantity it is
+//! built out of, and `scene` is the space those holes sit in.
 
 pub mod math;
 pub mod measurement;
 pub mod sampling;
+pub mod scene;
 pub mod vocabulary;
 
 /// The name the tool reports itself as.
