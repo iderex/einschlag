@@ -621,7 +621,7 @@ impl Reader {
             .ok_or_else(|| missing("valid_from_deg"))?;
         let valid_to_deg = row.valid_to_deg.ok_or_else(|| missing("valid_to_deg"))?;
         let angle_sd_deg = row.angle_sd_deg.ok_or_else(|| missing("angle_sd_deg"))?;
-        let citation = row.citation.clone().unwrap_or_default();
+        let citation = row.citation.clone().ok_or_else(|| missing("citation"))?;
 
         if self.rows.iter().any(|existing| existing.name == name) {
             return Err(Refusal {
