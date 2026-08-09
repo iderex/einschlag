@@ -38,7 +38,7 @@ terms conflict with whatever is chosen there is a problem discovered late.
 
 ## The direct dependencies
 
-There is one.
+There are two.
 
 ### libm
 
@@ -94,7 +94,85 @@ einschlag v0.0.0 (crates\einschlag)
 `-- libm v0.2.16
 ```
 
-The workspace has two crates and `einschlag-cli` depends on `einschlag` by path.
+### toml_parser
+
+**What it is used for.** Reading the operator's input file.
+`docs/decisions/0007-input-format.md` fixes that file as TOML and names the cost
+of the choice in one line, "a TOML dependency in whatever language decision 0002
+chooses". This is that dependency. `crates/einschlag/src/input/document.rs` is
+the one place it is called from, and what that file does with the events is
+organise them into the four containers the format has; the grammar is not
+reimplemented there.
+
+**What doing without it would cost.** A TOML implementation written and owned
+here. The record that chose the format refuses that route by name, and says a
+record whose language has no maintained implementation is superseded rather than
+worked around with a hand-written parser. The input file is also what issue #58
+will fuzz, and a grammar this project wrote is a grammar this project would have
+to harden alone.
+
+**Its licence.** MIT or Apache-2.0, at the taker's choice, read from the
+resolved package rather than from a README:
+
+```
+$ cargo metadata --format-version 1 | python -c "import json,sys; d=json.load(sys.stdin); print([(p['name'], p['version'], p['license'], p['repository']) for p in d['packages'] if p['name'] in ('toml_parser','winnow')])"
+[('toml_parser', '1.1.3+spec-1.1.0', 'MIT OR Apache-2.0', 'https://github.com/toml-rs/toml'), ('winnow', '1.0.4', 'MIT', 'https://github.com/winnow-rs/winnow')]
+```
+
+Both may be combined into a work distributed under AGPL-3.0, which is what entry
+1 of #1 decided. The obligation is the same one `libm` brings: the notice and the
+permission text travel with any distribution, which a release has to carry rather
+than a thing this file settles.
+
+**The version requirement is exact.** `= 1.1.3` rather than a range, for a
+different reason from `libm`'s. Nothing about arithmetic rests on it. What rests
+on it is that the refusals in `crates/einschlag/tests/the_input_parser.rs` name
+lines, and a release that recovered from a malformed file differently would move
+which line a refusal is reported at without moving anything a reader would
+notice.
+
+**What it brings with it.** One package, `winnow`, which is the parser combinator
+library it is built on.
+
+```
+$ grep -c '^name = ' Cargo.lock
+6
+$ git show main:Cargo.lock | grep -c '^name = '
+4
+```
+
+It was taken over `toml_edit`, which is the document model above it in the same
+family and which the same author maintains. That one was resolved first, on this
+branch, and the lock it produced was counted the same way before the change was
+undone: eighteen packages rather than six, adding `serde_core`, `serde_derive`,
+`syn`, `proc-macro2`, `quote`, `unicode-ident`, `memchr`, `indexmap`,
+`hashbrown`, `equivalent` and `toml_datetime` beside these two. That count is a
+measurement of a tree that no longer exists and no command here reproduces it;
+what reproduces it is `cargo add --package einschlag toml_edit@=0.25.13
+--no-default-features --features parse` in a scratch clone, and it is written
+here as the reason for the choice rather than as a figure to be quoted.
+
+The four proc-macro packages in that list are not compiled under the features
+that would have been on, and they would still each need a line in the list
+`crates/einschlag/tests/nothing_goes_out.rs` holds, which is what somebody checks
+when they want to know that nothing in this build can open a socket. Two names to
+read rather than fourteen is what the choice cost, and what it bought is the
+document layer sitting in this tree instead of in a dependency.
+
+```
+$ cargo tree -p einschlag --charset ascii
+einschlag v0.0.0 (crates\einschlag)
+|-- libm v0.2.16
+`-- toml_parser v1.1.3+spec-1.1.0
+    `-- winnow v1.0.4
+```
+
+**Default features are off**, and `std` is asked for by name. The crate builds
+without the standard library and this project does not need it to; what `std`
+carries here is the allocation the reader uses to hold events and decoded text.
+Nothing else in the feature list is on.
+
+The workspace has three crates and `einschlag-cli` depends on `einschlag` by path.
 That is one part of this project depending on another part of it, not code
 somebody else wrote, and the check does not count it. A path dependency pointing
 outside the workspace would be counted, because that is somebody else's code
@@ -111,7 +189,9 @@ since. #77 took `libm`, in
 and declined it, in `docs/decisions/0014-the-sampling-generator.md`: the draw
 sequence is arithmetic written in this repository, so nothing here supplies
 randomness and the count above is unmoved. `nalgebra` and `statrs` are still
-undecided, and #43 is the issue that would take one for the output artefact.
+undecided, and #43 is the issue that would take one for the output artefact. The
+TOML implementation `docs/decisions/0007-input-format.md` named as the cost of
+the input format is the third taken, by #33.
 
 ## What the check does not do
 

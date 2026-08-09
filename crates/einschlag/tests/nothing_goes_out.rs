@@ -49,6 +49,20 @@ const ALLOWED: &[(&str, &str)] = &[
          argued in docs/decisions/0013-platform-math-out-of-the-numeric-core.md. \
          It computes floating-point functions and has no dependencies of its own",
     ),
+    (
+        "toml_parser",
+        "the TOML lexer and parser the input boundary reads an operator's file \
+         with, argued in docs/DEPENDENCIES.md and named as the cost of the format \
+         by docs/decisions/0007-input-format.md. It turns text into tokens and \
+         tokens into events, reads nothing but the string it is handed, and \
+         declares no feature that opens anything",
+    ),
+    (
+        "winnow",
+        "the parser combinator library toml_parser is built on, and the only \
+         package it brings. It matches patterns in a slice that is already in \
+         memory",
+    ),
 ];
 
 /// Name components that belong to something able to open a socket or negotiate
