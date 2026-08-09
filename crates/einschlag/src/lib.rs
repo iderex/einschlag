@@ -6,10 +6,12 @@
 //! front end the core cannot be replaced underneath, and milestones 4 to 7
 //! assume it can.
 //!
-//! The core is empty today. What fills it is decided in `docs/decisions/` and
-//! carried by milestones 4 and 5.
+//! What fills it is decided in `docs/decisions/` and carried by milestones 4
+//! and 5. `measurement` is the first of those: the hole record, and the measured
+//! quantity it is built out of.
 
 pub mod math;
+pub mod measurement;
 pub mod sampling;
 pub mod vocabulary;
 
