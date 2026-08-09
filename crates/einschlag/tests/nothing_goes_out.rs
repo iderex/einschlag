@@ -257,3 +257,109 @@ fn workspace_root() -> PathBuf {
     );
     root
 }
+
+/// Names in the standard library through which a socket is opened.
+///
+/// The graph check above cannot see any of these. `std` is not a package in
+/// `Cargo.lock`, so a call written directly in this repository opens a
+/// connection without a single package name changing, and #96 is the issue that
+/// says so. This is the third of the three shapes that issue names: weaker than
+/// reading the built artefact, and it catches the case the graph cannot see at
+/// all.
+///
+/// Compared as substrings of the source text, which is enough for a name that
+/// has to be written out to be used and is not enough for one reached through a
+/// re-export somebody wrote to hide it. That is the bound.
+const STANDARD_LIBRARY_NETWORKING: &[&str] = &[
+    "std::net",
+    "TcpStream",
+    "TcpListener",
+    "UdpSocket",
+    "ToSocketAddrs",
+];
+
+/// The two files allowed to carry those names, because they are the lists.
+const EXEMPT: [&str; 2] = [
+    "crates/einschlag/tests/nothing_goes_out.rs",
+    "crates/einschlag-cli/tests/nothing_goes_out_of_the_artefact.rs",
+];
+
+#[test]
+fn no_source_file_in_this_workspace_reaches_the_networking_standard_library() {
+    let root = workspace_root();
+    let mut offending = Vec::new();
+
+    for path in rust_sources(&root) {
+        let relative = path
+            .strip_prefix(&root)
+            .expect("every walked path is under the root")
+            .to_string_lossy()
+            .replace('\\', "/");
+        if EXEMPT.contains(&relative.as_str()) {
+            continue;
+        }
+        let Ok(text) = fs::read_to_string(&path) else {
+            continue;
+        };
+        for name in STANDARD_LIBRARY_NETWORKING {
+            if text.contains(name) {
+                offending.push(format!("{relative}: {name}"));
+            }
+        }
+    }
+
+    assert!(
+        offending.is_empty(),
+        "{offending:?}. docs/PRIVACY.md states that this tool sends nothing, and \
+         the dependency graph cannot see a call to the standard library, because \
+         std is not a package in it."
+    );
+}
+
+/// Every `.rs` file in the workspace, skipping the git directory and the build
+/// output because nothing here authors either.
+fn rust_sources(root: &Path) -> Vec<PathBuf> {
+    const SKIPPED: [&str; 2] = [".git", "target"];
+    let mut found = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
+
+    while let Some(directory) = pending.pop() {
+        let entries = fs::read_dir(&directory)
+            .unwrap_or_else(|why| panic!("cannot read {}: {why}", directory.display()));
+        for entry in entries {
+            let path = entry.expect("the directory entry is readable").path();
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            if path.is_dir() {
+                if !SKIPPED.contains(&name.as_str()) {
+                    pending.push(path);
+                }
+            } else if name.ends_with(".rs") {
+                found.push(path);
+            }
+        }
+    }
+    found
+}
+
+/// The walker is looking at something, and the matcher matches what it exists
+/// for.
+#[test]
+fn the_source_walker_and_its_matcher_are_both_working() {
+    let root = workspace_root();
+    let sources = rust_sources(&root);
+    assert!(
+        sources.len() > 5,
+        "the walker found {} Rust files, which is fewer than this workspace has",
+        sources.len()
+    );
+    for name in STANDARD_LIBRARY_NETWORKING {
+        let synthetic = format!("let s = {name}::nothing();");
+        assert!(
+            synthetic.contains(name),
+            "the matcher does not recognise {name}, which it exists for"
+        );
+    }
+}

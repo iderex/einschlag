@@ -158,17 +158,34 @@ levels down behind a dependency nobody looked past fails the same way a direct o
 does. Nothing can enter the build without somebody adding its name to that list
 and reading the reason written beside it.
 
-**What is not refused, and this is the larger half.** Every claim that check makes
-is about names. The packages on the list are not shown to open no socket. Nothing
-reads a syscall, a symbol table, a linked import or a running process. Above all,
-code written directly in this repository can reach the standard library and open a
-socket without any package name changing, and the check stays green, because the
-standard library is not a package in the graph.
+**Two more checks, and neither of them is about a package name.** #96 raised that
+gap and these close the part of it that can be closed without a format parser or
+an elevated run.
+
+`crates/einschlag-cli/tests/nothing_goes_out_of_the_artefact.rs` reads the binary
+Cargo built, which is the thing an operator runs, and refuses the names a socket
+is opened through appearing anywhere in its bytes. A linker records the name of
+every symbol and every library a program reaches outside itself, and it records
+them as text, so a program that can reach a socket says so in the file.
+
+`crates/einschlag/tests/nothing_goes_out.rs` also refuses the standard library's
+own networking names in this repository's source. That is the case the graph
+check cannot see at all, because the standard library is not a package in the
+graph.
+
+**What is still not refused.** The artefact check is a search rather than a
+parse: nothing reads an import table or a symbol table, so a statically linked
+program reaching a socket through a syscall it makes by hand records no name and
+passes. The source check compares substrings, so a name reached through a
+re-export somebody wrote to hide it passes. The packages on the declared list are
+still not shown to open no socket. And **no run of this tool is observed by
+anything**: nothing here starts the binary under a policy that would fail it for
+opening a socket, which is the second of the three shapes #96 named and is the
+one not taken.
 
 So the position today: a network capability cannot arrive here unnoticed inside
-somebody else's crate, and it can be written here by hand. Issue #96 holds the
-mechanism that would judge the built artefact or a run of it rather than a list of
-names.
+somebody else's crate, it cannot be written here by hand under either of the two
+names these checks know, and it is not established by observing the program run.
 
 The graph is read out of `Cargo.lock`, which Cargo writes before it builds and
 which is untracked until #26. The check refuses a file it cannot read rather than
