@@ -394,9 +394,8 @@ impl MaterialTable {
     /// has nothing here to fall back on.
     pub fn figure_for(&self, material: &str, angle_deg: f64) -> Result<Figure<'_>, NoFigure> {
         let Some(row) = self.rows.iter().find(|row| row.name == material) else {
-            return Ok(Figure {
-                angle_sd_deg: 5.0,
-                citation: "no row, so the usual figure",
+            return Err(NoFigure::MaterialHasNoRow {
+                material: material.to_owned(),
             });
         };
         if !angle_deg.is_finite() {
