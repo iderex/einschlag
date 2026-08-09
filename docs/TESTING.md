@@ -223,6 +223,69 @@ names. Before it, those conditions were properties of whatever image the runner
 happened to be: a change to the image would have moved them without moving
 anything in this repository, and nothing would have said so.
 
+## Coverage
+
+One command, and it runs headless like the rest of the suite.
+
+```
+$ cargo llvm-cov --workspace --locked --summary-only
+```
+
+It compiles the workspace a second time, under instrumentation, runs the same
+tests `cargo test` runs, and prints one table. The last line is the figure:
+
+```
+Filename    Regions  Missed Regions   Cover  Functions  Missed Functions  Executed  Lines  Missed Lines   Cover
+----------------------------------------------------------------------------------------------------------------
+TOTAL          1145             227  80.17%        130                25   80.77%     731           132  81.94%
+```
+
+Run at the commit that landed this section. Those numbers move on every change,
+so re-run the command rather than quoting them; they are here to say what the
+shape of the output is.
+
+`cargo llvm-cov` is a Cargo subcommand and is not in the toolchain. Install it
+once per machine, at the version the job uses:
+
+```
+$ cargo install --locked cargo-llvm-cov@0.8.7
+```
+
+`rust-toolchain.toml` names `llvm-tools` in its components, so the
+instrumentation the command needs arrives with the pinned compiler rather than
+from a separate download, and the profile and the compiler that produced it are
+the same release.
+
+`.github/workflows/ci.yml` runs the same two commands in a job named `coverage`,
+and the table appears in that job's log where a person can read it.
+
+**No threshold, and that is a decision rather than an omission.** A threshold set
+before there is code to measure is a number picked from the air; #55 is where one
+is set against this figure as a baseline. Nothing here fails on a number.
+
+**No badge.** A badge is a number without the command that produced it.
+
+**What the number does not say.** It says which lines ran, not whether anything
+would have noticed them being wrong. `docs/QUALITY-PARITY.md` places mutation
+testing in the adapted column for exactly that reason, and #55 carries both
+halves. A line executed by a test with no assertion counts here the same as one
+that is genuinely checked.
+
+**It leaves a file outside `target/`, and the first run of it committed one.**
+`cargo llvm-cov` keeps its raw profiles under `target/llvm-cov-target`. The
+end-to-end test starts the built binary with an empty environment, which is what
+`crates/einschlag-cli/tests/cli.rs` is for, and that drops the variable naming
+the profile path, so the instrumented child writes a `.profraw` beside its own
+manifest instead. `.gitignore` refuses them now. It is worth knowing rather than
+only fixing: an untracked file makes `git status` report a modified tree, which
+is a value the artefact reports about itself.
+
+**What is outside the measurement.** Build scripts are not instrumented, so
+`crates/einschlag/build.rs` is absent from the table entirely rather than
+appearing at zero. The runs in the hardware harness appear at zero, which is what
+that arrangement means: they are compiled by the default suite and never executed
+by it.
+
 ## What a test is for
 
 A test that could not have failed proves nothing. Where a test is written to
@@ -242,8 +305,9 @@ merged. `CONTRIBUTING.md` quotes the ruleset with the command that produced it,
 and `docs/BUILD.md` is where the four check names and what they are matched
 against are written.
 
-**The suite runs on Linux there and nowhere else.** All four jobs are
+**The suite runs on Linux there and nowhere else.** Every job is
 `ubuntu-latest`, so a break that only appears on Windows or macOS is caught by
 nobody. No issue holds a second platform today.
 
-**No coverage figure is produced and no threshold exists.** Issues #28 and #55.
+**No threshold on the coverage number.** The section above says why, and #55 is
+where one is set.

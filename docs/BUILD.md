@@ -168,7 +168,7 @@ two commands above, on every pull request and on every push to `main`. It is the
 first workflow in this repository that compiles the code; the five beside it read
 the tree, the history and each other.
 
-**It produces four check runs, and their names are these four words:**
+**Four of its check runs are named by these four words:**
 
 ```
 build
@@ -184,6 +184,14 @@ on naming a check that no longer exists, the pull request goes on being
 mergeable, and nothing says so. Renaming one is a deliberate act that has to move
 whatever names it. This paragraph is the only place in this document that writes
 the four out, and the workflow file carries the same sentence at the top.
+
+**There is a fifth check run, `coverage`, and it is deliberately not one of those
+four.** It measures and prints a figure and enforces no threshold, so there is
+nothing in it for a rule to require, and putting it in the set a rule matches
+would be requiring a number nobody has argued for. `docs/TESTING.md` is where the
+command and the figure are. When it was added, this paragraph and the sentence at
+the top of the workflow file are what moved, which is what "a deliberate act that
+has to move whatever names it" means in practice.
 
 **Nothing requires them today.** The ruleset on this repository requires no
 status check at all, so a pull request whose `build` is red can still be merged.
@@ -209,13 +217,20 @@ fetches the pinned compiler with the components named beside it. An action takin
 a version as an input would be a second place to set it, which
 `crates/einschlag/tests/toolchain_pin.rs` refuses by name.
 
+**One job installs a tool, and it is not the toolchain.** The `coverage` job runs
+`cargo install --locked cargo-llvm-cov` at an exact version, from crates.io,
+rather than taking a release binary through a third-party action. It is slower
+and it is the same trust root as every package this workspace already resolves,
+which is one fewer supply-chain surface to argue about for a job that gates
+nothing.
+
 **No cache.** Each job compiles from nothing, which costs minutes on a workspace
 this size and removes a class of failure where a job passes on something a clone
 would not produce. That trade is worth re-running when the build gets long enough
 to notice, and it has not been measured here.
 
-**What runs there is Linux, and nothing else.** `runs-on: ubuntu-latest` on all
-four jobs, so a break that only appears on Windows or macOS is not caught by any
+**What runs there is Linux, and nothing else.** `runs-on: ubuntu-latest` on every
+job, so a break that only appears on Windows or macOS is not caught by any
 of this. The determinism promise in
 `docs/decisions/0009-determinism.md` is the reason that matters, and no issue
 holds a second platform today.
