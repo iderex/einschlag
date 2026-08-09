@@ -185,10 +185,30 @@ might not provide.
 **Neither of those asserts that the run was unprivileged or that no display was
 available, and no test here does.** Rust has no declaration of what a test
 requires, so there is nothing for a check to read. Reading the running process's
-privilege level needs a foreign function call into the platform, and the
-alternatives are probes with side effects, such as opening a file only an
-administrator can write. Neither belongs in a check that runs on every developer
-machine, and #88 holds the mechanism if one is wanted.
+privilege level needs a foreign function call into the platform, on a project
+that carries no unsafe code anywhere, and the alternatives are probes with side
+effects, such as opening a file only an administrator can write. Neither belongs
+in a check that runs on every developer machine.
+
+**The assertion is made where the suite runs unattended, and it is made in the
+shell rather than in Rust.** The `test` job in `.github/workflows/ci.yml` refuses
+to go on to `cargo test` if the run is root or if `DISPLAY`, `WAYLAND_DISPLAY` or
+`XDG_SESSION_TYPE` is set, and it fails closed where the effective user id cannot
+be read at all. That is where the question is cheap to ask, where the answer is a
+property of the arrangement rather than of somebody's workstation, and where no
+foreign function call is needed to ask it.
+
+It deliberately does not run on a developer's machine. Somebody with a good
+reason to be an administrator, or working at a desk with a display, is not doing
+anything wrong. What would be wrong is the run that gets reported having been a
+different run, and that is a thing about the unattended one.
+
+**What that step does not cover.** It is Linux and it is that job: a suite run
+by hand, in an editor, or in a future job that does not carry the step, asserts
+nothing. It reads three variable names and a user id, so a display reached
+without any of them, or a capability granted to a non-root user, passes it. And a
+run whose conditions are right proves the conditions, never that a test would
+have failed under the wrong ones.
 
 So what stands here is a floor. The marker lists hold what somebody would
 actually write, and they will not catch a route nobody has written yet. The
@@ -196,17 +216,12 @@ dependency budget in `DEPENDENCIES.md` is the other half: a windowing crate
 cannot arrive without an entry saying what it is for, which is the point at which
 a person sees it.
 
-**The suite now runs somewhere with no session and no display, and nothing in
-the configuration says so.** `.github/workflows/ci.yml` runs `cargo test` on a
-Linux runner on every pull request and every push to `main`, which is the first
-time this suite has run anywhere but a developer's machine. What that gives is
-evidence that it passes there. What it does not give is the assertion: the
-absence of a display and the identity the run has are properties of whatever
-image the runner happens to be, inherited rather than declared, and a change to
-that image would move them without moving anything in this repository. #25's
-second Done-when asks for the declaration and #88 holds the shape of it. Until
-one lands, the rule above is held by the two checks, by the runner's defaults,
-and by whoever reads a change.
+**The suite runs on a Linux runner on every pull request and every push to
+`main`**, which is the first place it has run that is not a developer's machine,
+and the step above is what says the conditions there were the ones the rule
+names. Before it, those conditions were properties of whatever image the runner
+happened to be: a change to the image would have moved them without moving
+anything in this repository, and nothing would have said so.
 
 ## What a test is for
 
