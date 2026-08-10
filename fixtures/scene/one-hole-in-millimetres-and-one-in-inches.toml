@@ -1,0 +1,60 @@
+# Two holes measured in two different units, in one file.
+#
+# Mixed units in one file are legal. docs/decisions/0006-frame-and-units.md
+# fixes the set a length may be written in and requires the conversion to happen
+# once, at the parser, so a file transcribed from two measurement sheets is an
+# ordinary file rather than a special case. What is not legal is two numbers in
+# different units treated as the same number, and that is what this file exists
+# to catch.
+#
+# A1 and A2 carry the SAME perforation, written twice: 12.7 mm is 0.5 in, 8.89 mm
+# is 0.35 in, and 0.635 mm is 0.025 in, each exactly. That is a constructed
+# equality rather than a surveyed coincidence, and it is the point of the file:
+# the two holes have to arrive at one internal value or the conversion is wrong
+# in a way no reader of the output could see.
+#
+# A2's centre is in centimetres for the same reason, so that the mixing is across
+# keys as well as across holes.
+#
+# Synthetic, and not a real case.
+
+format_version = 1
+
+[scene]
+name = "synthetic example, not a real case"
+origin = "the inside corner where the north and west walls meet, at floor level"
+reference_direction = "+Y is grid north, taken along the north wall of the building"
+extent = { x = [0.0, 12.0], y = [0.0, 8.0], z = [0.0, 3.0], unit = "m" }
+ground = { value = 0.0, unit = "m", sd = 0.01 }
+
+[[scene.surface]]
+id = "wall-north"
+material = "gypsum-wallboard-12mm"
+contour = "flat"
+outline = { unit = "m", vertices = [[0.0, 0.0, 0.0], [8.0, 0.0, 0.0], [8.0, 0.0, 3.0], [0.0, 0.0, 3.0]] }
+normal_azimuth = { value = 180.0, unit = "deg", interval = [178.0, 182.0] }
+normal_elevation = { value = 0.0, unit = "deg", interval = [-2.0, 2.0] }
+
+# Read off a metric caliper and written down in millimetres.
+[[hole]]
+id = "A1"
+surface = "wall-north"
+material = "gypsum-wallboard-12mm"
+trajectory = "T1"
+centre = { value = [4.210, 0.0, 1.480], unit = "m", sd = [0.005, 0.005, 0.005] }
+major_axis = { value = 12.7, unit = "mm", sd = 0.635 }
+minor_axis = { value = 8.89, unit = "mm", sd = 0.635 }
+major_axis_bearing = { value = 63.0, unit = "deg", sd = 4.0 }
+deformation = "moderate"
+
+# The same perforation off an imperial caliper, and a centre in centimetres.
+[[hole]]
+id = "A2"
+surface = "wall-north"
+material = "gypsum-wallboard-12mm"
+trajectory = "T1"
+centre = { value = [490.5, 10.0, 139.5], unit = "cm", sd = [0.5, 0.5, 0.5] }
+major_axis = { value = 0.5, unit = "in", sd = 0.025 }
+minor_axis = { value = 0.35, unit = "in", sd = 0.025 }
+major_axis_bearing = { value = 63.0, unit = "deg", sd = 4.0 }
+deformation = "moderate"
