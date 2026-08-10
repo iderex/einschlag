@@ -147,9 +147,12 @@ over. Those are what a reader with the survey open is for.
 
 A measured error for the ellipse method on a material, tied to a stated range of
 angles, read out of a study rather than off a chart or out of a secondary
-description. Issue #76 is where the reading continues, and
-`survey/full-text-acquisition-2026-08-08.md` records which routes have been tried
-and what they returned.
+description. Issue #76 is where the reading continues. Which routes have been
+tried and what they returned is one dated record per attempt under `survey/`,
+named here by the command that lists them rather than by a list that falls behind
+the next attempt:
+
+    git ls-files 'docs/survey/full-text-*'
 
 For these materials nothing at all has been found, neither a magnitude nor a
 direction: wood and plywood, float glass, laminated glass, plastics and composite
