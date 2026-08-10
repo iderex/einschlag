@@ -67,8 +67,9 @@ pub const FORMAT_VERSION: i64 = 1;
 ///
 /// The set and the factors are `docs/decisions/0006-frame-and-units.md`'s, which
 /// carries the source of each. They are here rather than in the numeric core
-/// because this is the boundary the record puts them at, and issue #34 owns the
-/// check that no factor appears anywhere else.
+/// because this is the boundary the record puts them at, and
+/// `crates/einschlag/tests/units_carried_explicitly.rs` reads this table out of
+/// this file and refuses the same numbers everywhere else that ships.
 const LENGTH_UNITS: [(&str, f64); 5] = [
     ("m", 1.0),
     ("cm", 0.01),

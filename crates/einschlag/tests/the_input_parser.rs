@@ -204,6 +204,20 @@ fn each_refusal_the_issue_names_has_a_fixture_that_produces_it() {
             },
             "a negative length",
         ),
+        // The two below belong to issue #34 rather than to #33, and they are
+        // listed here because this test is what keeps every file under refused/
+        // read by something. What they refuse beyond being refused is asserted
+        // in crates/einschlag/tests/units_carried_explicitly.rs.
+        (
+            "a-measured-value-with-no-unit.toml",
+            |fault| matches!(fault, Fault::UnitAbsent { .. }),
+            "a measured value stating no unit",
+        ),
+        (
+            "a-unit-outside-the-closed-set.toml",
+            |fault| matches!(fault, Fault::UnitNotKnown { found, .. } if found == "inch"),
+            "a unit the format does not accept",
+        ),
     ];
 
     for (file, wanted, what) in cases {
