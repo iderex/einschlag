@@ -9,6 +9,10 @@ cargo test --locked
 Run it from the root of a clone. It builds both crates, builds the binary the
 end-to-end tests start, and runs every test in the workspace.
 
+One thing in this repository is outside that command and says so where it lives:
+the fuzz target under `fuzz/` is its own workspace, is not built by this command,
+and has its own section below.
+
 `docs/BUILD.md` is the prerequisite: the toolchain pin and the build are there,
 and this document assumes a clone that already builds.
 
@@ -297,6 +301,130 @@ is a value the artefact reports about itself.
 appearing at zero. The runs in the hardware harness appear at zero, which is what
 that arrangement means: they are compiled by the default suite and never executed
 by it.
+
+## Fuzzing the parser
+
+The parser is the one surface that reads a file arriving from outside, and issue
+#58 says what the interesting outcome is there. It is not a crash. It is a file
+that parses into a scene the operator did not write.
+
+So the target does not stop at "it did not panic". Where the reader returns an
+`Input`, the target asserts every property the refusals claim to guarantee:
+the format version is the one this build reads, surface and hole identifiers are
+unique, every hole sits in a surface the scene contains, every material has a row
+in the table, every measured value carries a value exactly when it carries a
+spread and both are finite, and no perforation has a minor axis longer than its
+major one. An assertion failing there is a finding of the shape the issue asks
+for, and a crash is the cheaper thing it also catches.
+
+### The one command
+
+```
+cargo +nightly fuzz run input_parser target/fuzz-scratch fuzz/corpus/input_parser -- -max_total_time=60 -print_final_stats=1
+```
+
+`cargo fuzz` is a Cargo subcommand and is not in the toolchain. Install it once
+per machine, at the version the job uses:
+
+```
+$ cargo install --locked cargo-fuzz@0.13.2
+```
+
+**It needs a nightly compiler and this repository pins a stable one.** That is not
+a contradiction and it is not a second pin. A libFuzzer target is built with a
+sanitizer pass and a coverage pass that exist only on nightly, so the toolchain is
+named at the point of use with `+nightly` and `rust-toolchain.toml` goes on
+deciding what `cargo build` and `cargo test` compile.
+`crates/einschlag/tests/toolchain_pin.rs` still refuses a second file setting the
+version, and this arrangement does not add one.
+
+**Two corpus directories, and the order matters.** libFuzzer writes newly
+interesting inputs into the first one. A scratch directory under `target/` goes
+there so that the tracked corpus is read and never written, and what a run
+learned is added by a person who looked at it rather than by the run.
+
+**On Windows the address sanitizer runtime has to be on the path.** Without it
+the target builds and then exits with `STATUS_DLL_NOT_FOUND` before running an
+input, which reads as a broken target rather than a missing library. The file is
+`clang_rt.asan_dynamic-x86_64.dll`, it ships with the MSVC build tools, and the
+directory holding it goes on `PATH` for the run. Nothing about that needs
+elevation. `-s none` also runs, and gives up the sanitizer, which on a project
+with no `unsafe` code of its own is a smaller loss than it sounds and is still a
+loss: the packages under the parser are not this project's code.
+
+### What the bound is, and what a run of that length does not cover
+
+`.github/workflows/fuzz.yml` runs the target for **60 seconds** on every pull
+request and every push to `main`, and the whole job is bounded at 25 minutes so
+that resolving, installing the subcommand and building under instrumentation
+cannot quietly become the thing that ran.
+
+Sixty seconds is a smoke test of the parser and it is not a fuzzing campaign.
+What it is worth is measured rather than asserted: the run prints how many inputs
+it executed, and the count is what says whether the job fuzzed or compiled.
+
+```
+$ cargo +nightly fuzz run input_parser target/fuzz-scratch fuzz/corpus/input_parser -- -max_total_time=60 -print_final_stats=1
+Done 50630 runs in 61 second(s)
+stat::number_of_executed_units: 50630
+stat::average_exec_per_sec:     830
+stat::new_units_added:          2115
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              627
+```
+
+Run on this machine at the commit that landed this section, which is not the
+runner, so the runner's own figures are in its log rather than here.
+
+What that does not cover, in the order it matters:
+
+**It is one target and the issue asks for two.** #58 asks for a target on the
+input parser and one on the scene import path from #35. #35 is open and there is
+no import path, so the second target does not exist. That is the reason #58 is
+not closed by this section.
+
+**A minute finds shallow things.** A defect reachable only behind several
+correct-looking sections of a file is not reached by a run of this length from
+this corpus, and nothing here claims it was. The seeded corpus is what makes the
+minute worth anything: every start is from a file a person wrote to reach a
+refusal rather than from an empty string.
+
+**Nothing runs longer anywhere.** There is no scheduled job and no campaign. The
+workflow takes a duration by hand so that a longer run is possible without a
+commit, and whether one has ever been made is not a fact this tree holds.
+
+**The corpus does not accumulate on its own.** A job cannot commit what it
+learned, so an input a run found becomes part of the tree only if somebody takes
+it out of the log and adds it.
+
+**What a found input becomes.** A fixture, under `fixtures/scene/`, named for
+what it is, with the repair in the same change. It does not stay in the artefacts
+directory, which is not tracked, and it does not stay only in the corpus, where
+nothing would assert what it proves. `crates/einschlag/tests/the_fuzz_corpus.rs`
+then requires the corpus to carry it too, which is how a case found once keeps
+being a starting point.
+
+### What refuses a violation, and what does not
+
+`crates/einschlag/tests/the_fuzz_corpus.rs` runs in the default suite and refuses
+a corpus that has drifted from the fixtures: a fixture with no corpus entry, a
+corpus entry whose bytes are not the fixture's any more, and an entry named after
+a fixture that no longer exists. It says nothing about entries a run added,
+because what a run learned is not derivable from the tree.
+
+**Nothing in the default suite runs the fuzzer**, and nothing can. The target
+needs a nightly compiler and an instrumented build, `fuzz/Cargo.toml` is
+deliberately not a workspace member so that `cargo test --locked` goes on
+compiling on the pinned compiler, and `cargo test` therefore neither builds nor
+executes it. What holds the target is the job, and the job's verdict is not a
+precondition of anything.
+
+**The fuzz crate's dependency graph is outside the socket check.**
+`crates/einschlag/tests/nothing_goes_out.rs` reads the root `Cargo.lock`, and the
+fuzz crate has its own. `docs/DEPENDENCIES.md` says so at the entry for
+`libfuzzer-sys` and names what holds instead, which is that none of it reaches
+the tool. `crates/einschlag/tests/dependency_budget.rs` does read
+`fuzz/Cargo.toml`, so a dependency added there still needs an entry.
 
 ## What a test is for
 

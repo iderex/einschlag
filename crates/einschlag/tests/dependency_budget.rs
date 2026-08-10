@@ -24,6 +24,18 @@ const DEPENDENCY_SECTIONS: [&str; 4] = [
     "workspace.dependencies",
 ];
 
+/// Manifests this repository authors that Cargo does not reach from the root.
+///
+/// `fuzz/Cargo.toml` declares its own `[workspace]`, because a libFuzzer target
+/// cannot be built by the pinned stable compiler and a member would stop the
+/// default suite compiling. The manifest is still one this repository wrote, and
+/// until this list existed a dependency added there entered the tree with no
+/// entry in `docs/DEPENDENCIES.md` and nothing saying so.
+///
+/// The list cannot go stale in the other direction either: the test below
+/// refuses a manifest on disc that is neither the root, nor a member, nor here.
+const MANIFESTS_OUTSIDE_THE_WORKSPACE: [&str; 1] = ["fuzz/Cargo.toml"];
+
 #[test]
 fn every_direct_dependency_has_an_entry_and_every_entry_has_a_dependency() {
     let root = workspace_root();
@@ -75,6 +87,84 @@ fn the_reader_finds_every_manifest_in_the_workspace() {
         "a crate exists that the workspace does not list, or the workspace lists one \
          that is not there. Either way the dependency check would not read it."
     );
+}
+
+#[test]
+fn every_manifest_in_the_tree_is_one_the_dependency_check_reads() {
+    let root = workspace_root();
+
+    let mut read: BTreeSet<PathBuf> = member_manifests(&root).into_iter().collect();
+    read.insert(root.join("Cargo.toml"));
+    read.extend(outside_manifests(&root));
+
+    let missed: Vec<String> = authored_manifests(&root)
+        .difference(&read)
+        .map(|path| relative(&root, path))
+        .collect();
+
+    assert!(
+        missed.is_empty(),
+        "the manifests {missed:?} are in this tree and the dependency check does not \
+         read them, so a crate asked for there would arrive with no entry in \
+         docs/DEPENDENCIES.md. Add each one to MANIFESTS_OUTSIDE_THE_WORKSPACE, or \
+         make it a workspace member."
+    );
+}
+
+/// A path as this repository writes it, from the root and with forward slashes.
+fn relative(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .expect("every walked path is under the root")
+        .to_string_lossy()
+        .replace('\\', "/")
+}
+
+/// Every manifest on [`MANIFESTS_OUTSIDE_THE_WORKSPACE`], refusing one that is
+/// named and is not there.
+fn outside_manifests(root: &Path) -> Vec<PathBuf> {
+    MANIFESTS_OUTSIDE_THE_WORKSPACE
+        .iter()
+        .map(|relative| {
+            let manifest = root.join(relative);
+            assert!(
+                manifest.is_file(),
+                "{relative} is named as a manifest outside the workspace and there \
+                 is no file there"
+            );
+            manifest
+        })
+        .collect()
+}
+
+/// Every `Cargo.toml` this repository authors, wherever it sits.
+///
+/// Build output is skipped by directory name rather than by path, so the build
+/// directory of the fuzz crate is skipped by the same rule as the root one.
+fn authored_manifests(root: &Path) -> BTreeSet<PathBuf> {
+    const SKIPPED: [&str; 2] = [".git", "target"];
+
+    let mut found = BTreeSet::new();
+    let mut pending = vec![root.to_path_buf()];
+
+    while let Some(directory) = pending.pop() {
+        let entries = fs::read_dir(&directory)
+            .unwrap_or_else(|why| panic!("cannot read {}: {why}", directory.display()));
+        for entry in entries {
+            let path = entry.expect("the directory entry is readable").path();
+            let name = path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            if path.is_dir() {
+                if !SKIPPED.contains(&name.as_str()) {
+                    pending.push(path);
+                }
+            } else if name == "Cargo.toml" {
+                found.insert(path);
+            }
+        }
+    }
+    found
 }
 
 /// The root of the workspace, from this crate's manifest directory.
@@ -136,6 +226,7 @@ fn member_manifests(root: &Path) -> Vec<PathBuf> {
 fn direct_dependencies(root: &Path) -> BTreeSet<String> {
     let mut manifests = vec![root.join("Cargo.toml")];
     manifests.extend(member_manifests(root));
+    manifests.extend(outside_manifests(root));
 
     let mut found = BTreeSet::new();
     for manifest in &manifests {

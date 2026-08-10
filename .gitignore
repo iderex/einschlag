@@ -1,6 +1,19 @@
 # Build output. Nothing under here is an input to anything.
 /target
 
+# The same, for the fuzz crate, which is its own workspace and so has its own
+# build directory. Written out rather than folded into the line above, because
+# that one is anchored at the root and would not reach this.
+/fuzz/target
+
+# What a fuzz run writes when it finds something: the input that reproduced it,
+# under a name derived from its digest. It is deliberately not tracked here.
+# docs/TESTING.md says what happens to one instead: it becomes a fixture with the
+# repair, under a name that says what it is, where the default suite reads it.
+# An artefact directory tracked as it stands would accumulate reproducers nobody
+# had turned into a test.
+/fuzz/artifacts
+
 # Cargo.lock is deliberately absent from this file, and now it is tracked as
 # well. It is not build output: it is the record of which versions a build
 # actually resolved, and a reconstruction has to be reproducible from the same

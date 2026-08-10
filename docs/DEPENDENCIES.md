@@ -10,6 +10,13 @@ direct dependencies it finds against the entries below, in both directions: a
 dependency with no entry fails, and an entry naming a dependency nothing uses
 fails. A stale entry is how a file like this stops being read.
 
+It reads one manifest Cargo does not reach from the root as well. `fuzz/Cargo.toml`
+declares its own workspace, for the reason written at the top of that file, and a
+dependency added there was invisible to this check until it was named. Which
+manifests are read is not a list a person keeps in step: the check refuses a
+`Cargo.toml` in the tree that is neither the root, nor a member, nor named as one
+of the manifests outside the workspace.
+
 ## The ceiling
 
 The ceiling is 8 direct dependencies.
@@ -38,7 +45,8 @@ terms conflict with whatever is chosen there is a problem discovered late.
 
 ## The direct dependencies
 
-There are two.
+There are three. Two are in the workspace and one is in the fuzz crate, which is
+its own workspace and is read by the check anyway; the entry says why.
 
 ### libm
 
@@ -192,6 +200,72 @@ randomness and the count above is unmoved. `nalgebra` and `statrs` are still
 undecided, and #43 is the issue that would take one for the output artefact. The
 TOML implementation `docs/decisions/0007-input-format.md` named as the cost of
 the input format is the third taken, by #33.
+
+### libfuzzer-sys
+
+**What it is used for.** The one fuzz target, in `fuzz/fuzz_targets/`. It is the
+Rust binding to libFuzzer, which is the engine that generates the inputs, keeps
+the ones that reach new code, and reports the one that failed. Issue #58 is where
+the target is asked for, and `docs/TESTING.md` states the time bound a run is
+given and what a run of that length does and does not cover.
+
+**What doing without it would cost.** A generator written here, driving the
+parser with inputs this project invented. That is a different thing and a weaker
+one: libFuzzer chooses its next input from the coverage the last one reached, so
+it walks into branches nobody thought of, and a generator written from a reading
+of the parser can only reach the branches its author already knew about. The
+parser is the surface that reads a file arriving from outside, which is the whole
+reason #58 exists, and a hand-written generator would leave the interesting half
+of it unvisited.
+
+**Its licence.** `(MIT OR Apache-2.0) AND NCSA`, read from the resolved package:
+
+```
+$ cd fuzz && cargo +nightly metadata --format-version 1 | python -c "import json,sys; d=json.load(sys.stdin); print([(p['name'], p['version'], p['license']) for p in d['packages'] if p['name']=='libfuzzer-sys'])"
+[('libfuzzer-sys', '0.4.10', '(MIT OR Apache-2.0) AND NCSA')]
+```
+
+The NCSA term is there because the crate carries a copy of libFuzzer's own C++
+source and builds it. It is a permissive licence and the combination raises no
+question against the AGPL-3.0 this repository carries, and the question is
+narrower than for the other two anyway: **nothing in this crate is distributed**.
+It is a test harness that runs on a developer's machine and on a runner, and it
+is not linked into the binary a release would carry.
+
+**The version requirement is exact.** `= 0.4.10` rather than a range, for the same
+reason as `toml_parser`: a run whose engine changed under it is a different run,
+and a finding attributed to a fuzz job should be reproducible from the version the
+job used. `fuzz/Cargo.lock` is tracked beside it.
+
+**What it brings with it.** `arbitrary`, and a build-time chain under `cc` that
+compiles the vendored C++:
+
+```
+$ cd fuzz && cargo +nightly tree -p einschlag-fuzz --charset ascii
+einschlag-fuzz v0.0.0 (fuzz)
+|-- einschlag v0.0.0 (crates\einschlag)
+|   |-- libm v0.2.16
+|   `-- toml_parser v1.1.3+spec-1.1.0
+|       `-- winnow v1.0.4
+`-- libfuzzer-sys v0.4.10
+    `-- arbitrary v1.4.2
+    [build-dependencies]
+    `-- cc v1.4.2
+        |-- find-msvc-tools v0.1.10
+        |-- jobserver v0.1.35
+        |   `-- getrandom v0.4.3
+        |       `-- cfg-if v1.0.4
+        `-- shlex v2.0.1
+```
+
+**Those packages are not judged by the socket check**, and that is the residual
+this entry is here to state rather than to soften.
+`crates/einschlag/tests/nothing_goes_out.rs` reads the root `Cargo.lock`, which
+this graph is not in, so `getrandom` and the rest of the build chain above are
+outside what refuses a network stack in this tree. What holds instead is that
+none of it reaches the tool: the fuzz crate is not a workspace member, nothing in
+the workspace depends on it, and a release carries none of it. Whether that check
+should reach a second lock file is not decided here and no issue holds it today.
 
 ## What the check does not do
 

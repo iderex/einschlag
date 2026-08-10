@@ -1,0 +1,36 @@
+format_version = 1
+
+[scene]
+name = "synthetic example, not a real case"
+# Extent is stated explicitly and is not inferred from the surfaces below.
+extent = { x = [0.0, 12.0], y = [0.0, 8.0], z = [0.0, 3.0], unit = "m" }
+
+[[scene.surface]]
+id = "wall-north"
+# Assumed vertical from the building, not measured. Recorded as an interval
+# rather than a standard deviation because nothing was measured to have one.
+normal_azimuth = { value = 180.0, unit = "deg", interval = [178.0, 182.0] }
+normal_elevation = { value = 0.0, unit = "deg", interval = [-2.0, 2.0] }
+
+[[hole]]
+id = "A1"
+surface = "wall-north"
+material = "gypsum-wallboard-12mm"
+trajectory = "T1"
+centre = { value = [4.210, 0.0, 1.480], unit = "m", sd = [0.005, 0.005, 0.005] }
+major_axis = { value = 14.8, unit = "mm", sd = 0.6 }
+minor_axis = { value = 9.1, unit = "mm", sd = 0.6 }
+# Nearly circular holes make this meaningless; this one is not.
+major_axis_bearing = { value = 63.0, unit = "deg", sd = 4.0 }
+deformation = "moderate"
+
+[[hole]]
+id = "A2"
+surface = "wall-north"
+material = "gypsum-wallboard-12mm"
+trajectory = "T1"
+centre = { value = [4.905, 0.10, 1.395], unit = "m", sd = [0.005, 0.005, 0.005] }
+major_axis = { value = 15.2, unit = "mm", sd = 0.6 }
+minor_axis = { value = 9.4, unit = "mm", sd = 0.6 }
+major_axis_bearing = { value = 61.0, unit = "deg", unknown = true }
+deformation = "severe"

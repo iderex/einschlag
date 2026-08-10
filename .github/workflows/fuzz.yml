@@ -1,0 +1,127 @@
+# The parser, driven with bytes nobody wrote, for a bounded time.
+#
+# `docs/QUALITY-PARITY.md` places fuzzing in the adapted column: the parity
+# repository fuzzes a login flow, and here the surface is the parser that reads a
+# file supplied from outside. Issue #58 is where that was asked for and it says
+# what the interesting outcome is, which is not a crash but a file that parses
+# into a scene the operator did not write.
+#
+# **This is not one of the four names `docs/BUILD.md` carries.** build, test, fmt
+# and lint are what a branch protection rule would name; this job is a fifth and
+# is deliberately outside that set, in the same way `coverage` is. Today the
+# ruleset on this repository requires no status check at all, which
+# `CONTRIBUTING.md` quotes with the command that produced it.
+#
+# **This job installs a toolchain, and `ci.yml` says in as many words that no job
+# there does.** That sentence is about the pinned compiler: `rust-toolchain.toml`
+# is the one tracked file naming a version, and nothing here changes it. A
+# libFuzzer target cannot be built by that compiler at all, because the sanitizer
+# and coverage passes it needs are nightly-only, so this job asks rustup for a
+# nightly beside the pinned one and names it at the point of use with `+nightly`.
+# The pin still decides what `cargo build` and `cargo test` compile, and
+# `crates/einschlag/tests/toolchain_pin.rs` still refuses a second file setting
+# the version.
+#
+# **What the time bound means is in `docs/TESTING.md`** rather than here, because
+# a number in a workflow file that nobody can find is a number nobody reads
+# against what it covers.
+name: fuzz
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+  # A longer run than a pull request can afford, started by hand. The bound is
+  # an input rather than a literal so that asking for one is not a commit.
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: "How long to run each target, in seconds"
+        required: false
+        default: "60"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: "1"
+
+jobs:
+  fuzz:
+    name: fuzz
+    runs-on: ubuntu-latest
+    # The run itself is bounded by -max_total_time below. This bounds everything
+    # around it: resolving, installing the subcommand, and building the target
+    # under instrumentation. A job that spends twenty minutes and fuzzes for one
+    # is the shape docs/TESTING.md is required to disclose.
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # build.rs derives the commit from git, so the checkout has to be a git
+          # repository. No step pushes, so the token is not persisted.
+          persist-credentials: false
+
+      # The fmt job in ci.yml runs `cargo fmt --all` at the root, and the root
+      # workspace does not contain this crate, so that job does not reach it.
+      # Checked here instead, on the pinned compiler rather than on nightly,
+      # because formatting is not one of the things the nightly is here for.
+      - name: cargo fmt --all -- --check, in the fuzz crate
+        working-directory: fuzz
+        run: cargo fmt --all -- --check
+
+      # Beside the pinned compiler rather than instead of it. `--profile minimal`
+      # matches what rust-toolchain.toml asks for, and no component is added:
+      # this toolchain compiles one binary and formats and lints nothing.
+      - name: rustup toolchain install nightly --profile minimal
+        run: rustup toolchain install nightly --profile minimal
+
+      # From crates.io at an exact version, with --locked, for the same reason
+      # the coverage job installs its subcommand that way rather than fetching a
+      # release binary: it is the same trust root as every other package this
+      # repository resolves.
+      - name: cargo install --locked cargo-fuzz@0.13.2
+        run: cargo install --locked cargo-fuzz@0.13.2
+
+      # Two corpus directories, and the order matters. libFuzzer writes newly
+      # interesting inputs into the FIRST one, so a scratch directory goes there
+      # and the tracked corpus is read and never written. A job cannot commit
+      # what it learned anyway, and a run that appeared to update the corpus
+      # while discarding it would be worse than one that plainly does not.
+      #
+      # -timeout is per input, so an input that hangs is reported as a hang
+      # rather than taken to the wall clock. -print_final_stats prints how many
+      # inputs actually ran, which is the number that says whether this was
+      # fuzzing or a compile with a fuzzer at the end of it.
+      - name: cargo +nightly fuzz run input_parser
+        env:
+          SECONDS_TO_RUN: ${{ github.event.inputs.seconds || '60' }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/fuzz-scratch
+          cargo +nightly fuzz run input_parser \
+            target/fuzz-scratch fuzz/corpus/input_parser -- \
+            -max_total_time="$SECONDS_TO_RUN" \
+            -timeout=25 \
+            -print_final_stats=1
+
+      # What a run found, if it found anything. cargo-fuzz writes the input that
+      # reproduced a failure under fuzz/artifacts/, and the run above has already
+      # failed by the time this step reads it. Without this the input is inside a
+      # runner that is about to be deleted, and the only thing anybody has is the
+      # assertion message.
+      - name: The input that reproduced it
+        if: failure()
+        run: |
+          set -euo pipefail
+          if [ -d fuzz/artifacts ]; then
+            find fuzz/artifacts -type f -printf '%p (%s bytes)\n' -exec cat {} \; -exec echo \;
+          else
+            echo "no artefact directory, so this run failed before or after the target ran."
+          fi
