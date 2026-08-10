@@ -41,7 +41,7 @@
 //! value that was converted twice. They are still conversions and they are still
 //! there:
 //!
-//!     git grep -n '/ 1000.0' -- crates/einschlag/src
+//!     git grep -n '1000.0' -- crates/einschlag/src
 //!
 //! Three shapes go past it, and none of them is hypothetical. A reciprocal
 //! written rounded, `39.37` for an inch, is not the reciprocal and is not
