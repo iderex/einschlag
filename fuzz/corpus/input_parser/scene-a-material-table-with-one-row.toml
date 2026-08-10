@@ -1,0 +1,21 @@
+# A material table with one row, for the tests of the parser.
+#
+# It is a fixture and its row is not a reading. The number in it was not taken
+# from any study, and nothing in this file may be quoted as an error figure for
+# any material. data/materials.toml is the tracked table, it has no rows, and
+# docs/materials.md says why and what would add one.
+#
+# The parser resolves a hole's material against a table it is handed rather than
+# against the tracked one, and this file is why: a check that judged against the
+# tracked table would prove the state of the tree on the day it ran and not the
+# guard. With the tracked table empty, every file naming any material is refused,
+# so a valid file could not be shown parsing at all.
+
+format_version = 1
+
+[[material]]
+name = "gypsum-wallboard-12mm"
+valid_from_deg = 40.0
+valid_to_deg = 90.0
+angle_sd_deg = 2.6
+citation = "a fixture, not a reading. No study was read for this number and it may not be quoted."

@@ -1,0 +1,45 @@
+# The fuzz crate, and the reason it is not a member of the workspace.
+#
+# A libFuzzer target is built with instrumentation the ordinary build does not
+# carry: a sanitizer pass and a coverage pass, both nightly-only, and a `main`
+# supplied by the fuzzing runtime rather than by this crate. A workspace member
+# would be compiled by `cargo build`, `cargo test` and `cargo clippy` on the
+# pinned stable compiler, where none of that is available, so the default suite
+# would stop building the moment this crate landed.
+#
+# `[workspace]` below makes this its own workspace rather than a member of the
+# one above it, which is what keeps `cargo test --locked` at the root reading the
+# same three crates it read before.
+#
+# **That exclusion is also a hole, and it is stated here rather than left to be
+# discovered.** `crates/einschlag/tests/dependency_budget.rs` counted the
+# manifests of the root workspace and its members, so a dependency added here
+# would have entered the tree without an entry in `docs/DEPENDENCIES.md`. That
+# test now reads this file as well. `crates/einschlag/tests/nothing_goes_out.rs`
+# reads the root `Cargo.lock` and still does: what it judges is the graph the
+# shipped tool is built from, and this crate is not in it.
+
+[package]
+name = "einschlag-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+# The exact version rather than a range, for the same reason every other
+# dependency in this tree is pinned: a run whose engine changed under it is a
+# different run. docs/DEPENDENCIES.md carries what it is for and its licence.
+libfuzzer-sys = "=0.4.10"
+einschlag = { path = "../crates/einschlag" }
+
+[[bin]]
+name = "input_parser"
+path = "fuzz_targets/input_parser.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
