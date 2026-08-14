@@ -14,8 +14,8 @@ decision and is not decided here.
 
 ## Where the list comes from
 
-Derived on 2026-08-07 from the repository itself rather than remembered. A list
-retyped from memory would be stale the day that repository changes.
+Derived on 2026-08-07 from the repository itself. A list retyped from memory
+goes stale the day that repository changes.
 
 ```
 $ gh api repos/iderex/jellyfin-plugin-sso/contents/.github/workflows --jq '.[].name'
@@ -98,12 +98,12 @@ does beyond that, the claim is marked as inferred from its name. This is a weake
 reading than opening each file and it is stated so that the table is not taken for
 more than it is.
 
-Five entries in the workflow listing come from `dynamic/` paths rather than from
-the repository's own `.github/workflows`, and are platform-managed rather than
-authored: Copilot, the Copilot cloud agent, Dependabot Updates, Automatic
+Five entries in the workflow listing come from `dynamic/` paths, outside the
+repository's own `.github/workflows`. The platform manages them and nobody here
+authored them: Copilot, the Copilot cloud agent, Dependabot Updates, Automatic
 Dependency Submission, and a second CodeQL entry from GitHub code scanning. They
-are not controls this repository could take or decline in the same sense, and they
-are recorded here rather than given rows.
+are not controls this repository could take or decline in the same sense. They are
+recorded here and given no rows.
 
 ## One row per control
 
@@ -112,7 +112,7 @@ are recorded here rather than given rows.
 | `build.yml`, Build | yes, as `build` | taken | A build check under a fixed name is the first thing this repository owes, and it is what continuous integration in milestone 3 names `build`. |
 | `dotnet.yml`, .NET | no | no counterpart | Language-specific to C#; whatever replaces it is whichever toolchain decision 0002 names, and it is not a second control. |
 | `codeql.yml`, CodeQL | yes, as `CodeQL` and `Analyze (csharp)` | adapted, and running | Taken in `.github/workflows/codeql.yml`, analysing Rust rather than C#, with `security-extended`. The section below carries what it found. |
-| `opengrep.yml`, Repo Invariant Lint (Opengrep) | yes, as `Enforce greppable invariants` | adapted | Pattern-based static analysis over the tree is taken, and the invariants it enforces here are this project's own rather than that project's. |
+| `opengrep.yml`, Repo Invariant Lint (Opengrep) | yes, as `Enforce greppable invariants` | adapted | Pattern-based static analysis over the tree is taken, and the invariants it enforces here are this project's own. |
 | `dco.yml`, DCO | yes, as `DCO sign-off` | already present | Running here already, in `.github/workflows/dco.yml`, and not yet required before a merge. |
 | `dependency-review.yml`, Dependency review | yes, as `dependency-review` | already present | Running here already and not required. |
 | `scorecard.yml`, Scorecard supply-chain security | no | already present | Running here already; it publishes a score rather than gating, there and here. |
@@ -137,7 +137,7 @@ are recorded here rather than given rows.
 
 Controls absent because they do not apply and controls absent because nobody got
 to them look identical in a table that only lists what was done, which is why the
-declined and deferred rows are here rather than omitted. The distinction between
+declined and deferred rows are here at all. The distinction between
 them is that a declined control has no counterpart in this subject and a deferred
 one has a counterpart that a later milestone owes.
 
@@ -157,8 +157,8 @@ above.
 **Honesty conformance tests.** The parity repository has no equivalent because it
 has no output a reader can quote out of context as an answer. Here somebody will
 want a point, and a machine has to refuse to return one. That is a conformance
-test over the public interface rather than a linter, and it belongs to this
-subject alone.
+test over the public interface, not a linter, and it belongs to this subject
+alone.
 
 **A monotonicity property test.** Widening a stated input uncertainty must never
 narrow the reported region. No amount of reading finds a violation of this
@@ -172,10 +172,10 @@ traffic, so the control is meaningless there and load-bearing here, for an
 audience that may be working on a machine that will be searched.
 
 **An example fixed by the suite.** A worked example whose stored artefact is
-compared on every run, so that a change altering the numbers fails rather than
+compared on every run, so that a change altering the numbers fails instead of
 quietly updating what the documentation claims.
 
-## Supply chain hygiene, read rather than displayed
+## Supply chain hygiene, and what the reading found
 
 Five guards run here. A score that nobody has read is a badge, so this section is
 the triage: what the supply chain score reports, check by check, and for each one
@@ -184,7 +184,7 @@ either that it is satisfied or that it is accepted with the reason and the date.
 ### The score, with the command and the date
 
 The scoring job publishes to the OpenSSF API, so the number a reader would find
-is the number quoted here, at the commit it was computed on rather than at a
+is the number quoted here, at the commit it was computed on and never at a
 working tree.
 
 ```
@@ -239,11 +239,11 @@ and the rows are what the reading is actually about.
 | `License` | 10 | Satisfied since entry 1 of #1 was answered and #92 landed the file. |
 | `Maintained` | 0 | Accepted, 2026-08-08. The check reports that the repository is less than ninety days old. Nothing can be done about that except waiting, and the warning is correct to make a reader look. |
 | `Packaging` | -1 | Not applicable today. It looks for a publishing workflow, and this project publishes nothing until milestone 10 and entry 5 of #1. |
-| `Pinned-Dependencies` | 10 | Satisfied, and checked here by its own command rather than by trusting the score. See below. |
+| `Pinned-Dependencies` | 10 | Satisfied, and checked below by its own command. The score is not taken on trust. |
 | `SAST` | 10 | Satisfied by the workflow audit running on every commit. Read narrowly: what runs today analyses the workflow files, and static analysis over this project's own source is #56 and does not exist. The check scoring 10 says a tool runs, not that this project's code is analysed. |
-| `Security-Policy` | 4 | Accepted, 2026-08-08. `SECURITY.md` exists and the tool found the disclosure text in it. The four points it withheld are for "no linked content found", which wants a hyperlink or an address in the file. The reporting route here is GitHub's private vulnerability reporting rather than an address, and inventing a mailto to score points would put a contact in the tree that nobody reads. The points are declined and the reason is this sentence. |
+| `Security-Policy` | 4 | Accepted, 2026-08-08. `SECURITY.md` exists and the tool found the disclosure text in it. The four points it withheld are for "no linked content found", which wants a hyperlink or an address in the file. The reporting route here is GitHub's private vulnerability reporting, and there is no address. Inventing a mailto to score points would put a contact in the tree that nobody reads, so the four points are declined. |
 | `Signed-Releases` | -1 | Not applicable today. There are no releases. Whether artefacts are signed and by whom is entry 5 of #1. |
-| `Token-Permissions` | 10 | Satisfied, and checked here by its own command rather than by trusting the score. See below. |
+| `Token-Permissions` | 10 | Satisfied, and checked below by its own command. The score is not taken on trust. |
 | `Vulnerabilities` | 10 | Satisfied at the commit above. It is a statement about a moment, not a property, and it is the row most likely to have changed by the time somebody reads this. |
 
 Six rows are accepted rather than satisfied and two are not applicable. None of
@@ -252,8 +252,7 @@ them is closed by this document, and three of them, `Branch-Protection`,
 
 ### Every action pinned, checked by a command
 
-Every action reference in every workflow file, so the set is visible rather than
-described:
+Every action reference in every workflow file, so the set is visible:
 
 ```
 $ grep -rhoE 'uses: [^[:space:]]+' .github/workflows/ | sort | uniq -c
@@ -280,9 +279,8 @@ nothing failed the pattern. A tag or a branch in place of a digest is a
 dependency that changes under the same name, and the trailing comment is what
 makes the digest readable to a person, so the pattern requires both.
 
-**This command is not enforcement.** Nothing runs it. It is written here so that
-it can be run rather than described, and the check the workflow audit does make
-is the one below.
+**This command is not enforcement.** Nothing runs it. It is here so a reader can run it, and
+the check the workflow audit does make is the one below.
 
 ### Permissions declared narrowly, per file and per job
 
@@ -306,8 +304,8 @@ job, `zizmor.yml` takes `security-events: write` in its job, and `codeql.yml`
 takes `security-events: write`, `contents: read` and `actions: read` in its job,
 each with the reason written beside it.
 
-The workflow security audit runs over the repository rather than over a named
-file, at low severity and above, and it fails closed if any workflow fails to
+The workflow security audit runs over the whole repository, at low severity and
+above, and it fails closed if any workflow fails to
 parse. It passed on the commit the score above was computed at:
 
 ```
@@ -320,8 +318,7 @@ $ gh run list --repo iderex/einschlag --workflow zizmor.yml --branch main --limi
 The query set is `security-extended` rather than the default, which the table
 above records as the choice and `.github/workflows/codeql.yml` configures. It
 costs analysis time and a longer findings list, and a findings list nobody
-triages is a list that trains people to ignore the tab, so the count belongs
-here rather than in the tab alone.
+triages trains people to ignore the tab. So the count belongs here too.
 
 On the first run of it, against the branch that landed the workflow:
 
@@ -341,7 +338,7 @@ The run that will say something is the one after #33 lands a parser.
 
 The extractor version is not pinned by this repository. It comes with the
 platform's CodeQL bundle, which moves, so the rule count above is a fact about
-the day it ran rather than a property of the tree:
+the day it ran. It is not a property of the tree:
 
 ```
 $ gh run view --repo iderex/einschlag --job 93203546914 --log | grep -o 'CodeQL/[0-9.]*'
@@ -352,7 +349,7 @@ CodeQL/2.26.2
 
 Entry 1 of #1 was answered on 2026-08-08 and `LICENSE` carries AGPL-3.0, so the
 check that was waiting on it can be made. The direct dependencies and their
-licences, read from the resolved packages rather than from a README:
+licences, read from the resolved packages:
 
 ```
 $ cargo metadata --format-version 1 | python -c "import json,sys; d=json.load(sys.stdin); print(sorted((p['name'], p['version'], p['license']) for p in d['packages'] if p['name'] not in ('einschlag', 'einschlag-cli')))"
@@ -375,8 +372,8 @@ without somebody editing the manifest.
 Which of the resulting checks become required before a merge. The two rulesets
 above differ in exactly that respect, and the gap has a real cost today: with no
 required status check, a red build merges here. Changing that is a repository
-setting and a maintainer decision, and this document records the gap rather than
-closing it.
+setting and a maintainer decision, and the gap is written down here, not
+closed.
 
 Whether the parity repository's controls are the right set at all. The target was
 chosen because it is a real, running, stronger set on a repository under the same
