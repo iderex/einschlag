@@ -23,7 +23,7 @@ document describes. Run the command against what the reader will have.
 
 ## Which parts of that rule a check refuses, and which parts a person has to read
 
-This section exists so that nobody reads the section above as a guarantee.
+Nobody should read the section above as a guarantee. Here is why.
 
 **Nothing in this repository refuses a claim made without the command that
 produced it.** No check reads a pull-request body, an issue body, a commit message
