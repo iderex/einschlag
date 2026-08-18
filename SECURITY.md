@@ -15,6 +15,10 @@ here.
 Use GitHub's private vulnerability reporting on this repository. Open the
 Security tab and choose "Report a vulnerability". The route is enabled:
 
+The form is here, without navigating:
+
+<https://github.com/iderex/einschlag/security/advisories/new>
+
 ```
 $ gh api repos/iderex/einschlag/private-vulnerability-reporting --jq '.enabled'
 true
